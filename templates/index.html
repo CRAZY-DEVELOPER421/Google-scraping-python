@@ -1,0 +1,3404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zaucto Scraper</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d27;
+            --bg-card: #222639;
+            --bg-input: #1a2940;
+            --border-color: #2a3d5c;
+            --border-focus: #2563eb;
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0b8;
+            --text-muted: #5c6280;
+            --accent: #6c5ce7;
+            --accent-hover: #7f6ff0;
+            --accent-glow: rgba(108, 92, 231, 0.25);
+            --accent-dim: rgba(108, 92, 231, 0.12);
+            --danger: #ff6b6b;
+            --danger-hover: #ff5252;
+            --success: #00d68f;
+            --success-dim: rgba(0, 214, 143, 0.12);
+            --error: #ff6b6b;
+            --warning: #ffa726;
+            --warning-dim: rgba(255, 167, 38, 0.12);
+            --instagram: #e4405f;
+            --linkedin: #0a66c2;
+            --facebook: #1877f2;
+            --twitter: #1da1f2;
+            --whatsapp: #25d366;
+            --radius: 0px;
+            --radius-sm: 0px;
+            --radius-xs: 0px;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --toggle-bg: #2a3d5c;
+            --toggle-hover: #334a6e;
+            --toggle-size: 36px;
+            --badge-no-bg: rgba(37, 99, 235, 0.12);
+            --tr-hover: rgba(108, 92, 231, 0.06);
+            --toast-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --scrollbar-bg: #172338;
+            --scrollbar-thumb: #253a57;
+            --social-hover-bg: rgba(37, 99, 235, 0.15);
+            --zaucto-blue: #2563eb;
+            --zaucto-gold: #d97706;
+            --zaucto-white: #ffffff;
+            --accent: var(--zaucto-blue);
+            --accent-hover: #3b82f6;
+            --accent-glow: rgba(37, 99, 235, 0.25);
+            --accent-dim: rgba(37, 99, 235, 0.12);
+            --btn-scrape-gradient: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        /* ─── Light Mode ─────────────────────────────── */
+
+        html.light-mode {
+            --bg-primary: #f0f2f8;
+            --bg-secondary: #e4e7f0;
+            --bg-card: #ffffff;
+            --bg-input: #e8edf6;
+            --border-color: #b8c9e8;
+            --text-primary: #1a1d27;
+            --text-secondary: #5c6280;
+            --text-muted: #9aa0b8;
+            --accent-glow: rgba(37, 99, 235, 0.18);
+            --accent-dim: rgba(37, 99, 235, 0.08);
+            --success-dim: rgba(0, 214, 143, 0.1);
+            --warning-dim: rgba(255, 167, 38, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            --toggle-bg: #d0dcee;
+            --toggle-hover: #b8c9e8;
+            --badge-no-bg: rgba(37, 99, 235, 0.08);
+            --tr-hover: rgba(108, 92, 231, 0.04);
+            --toast-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            --scrollbar-bg: #d6dfef;
+            --scrollbar-thumb: #b8c9e8;
+            --social-hover-bg: rgba(37, 99, 235, 0.06);
+            --btn-scrape-gradient: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        html {
+            transition: color 0.3s ease, background-color 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .bg-glow {
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(37, 99, 235, var(--glow-opacity, 0.08)) 0%, transparent 60%),
+                        radial-gradient(ellipse at 70% 80%, rgba(217, 119, 6, var(--glow-opacity-2, 0.06)) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+            animation: bgShift 20s ease-in-out infinite alternate;
+            transition: background 0.3s ease;
+        }
+
+        html.light-mode {
+            --glow-opacity: 0.12;
+            --glow-opacity-2: 0.08;
+        }
+
+        html:not(.light-mode) {
+            --glow-opacity: 0.06;
+            --glow-opacity-2: 0.04;
+        }
+
+        @keyframes bgShift {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-5%, -5%) rotate(5deg); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 16px 24px 80px;
+        }
+
+
+
+
+
+
+
+
+
+        /* ─── Theme Toggle ──────────────────────────── */
+
+        .theme-toggle {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: var(--toggle-size, 36px);
+            height: var(--toggle-size, 36px);
+            border-radius: 50%;
+            background: var(--toggle-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+            outline: none;
+            z-index: 5;
+        }
+
+        .theme-toggle:hover {
+            background: var(--toggle-hover);
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .theme-toggle:active {
+            transform: scale(0.90);
+        }
+
+        .theme-toggle svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .theme-toggle .sun-icon {
+            display: none;
+        }
+        .theme-toggle .moon-icon {
+            display: block;
+        }
+
+        html.light-mode .theme-toggle .sun-icon {
+            display: block;
+        }
+        html.light-mode .theme-toggle .moon-icon {
+            display: none;
+        }
+
+        .theme-toggle:hover svg {
+            transform: rotate(15deg) scale(1.1);
+        }
+
+
+        /* ─── Theme Toggle ──────────────────────────── */
+
+        .card {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 32px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+            transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            border-color: rgba(37, 99, 235, 0.2);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 100px 150px;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.25s, box-shadow 0.25s, background 0.3s, color 0.3s;
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .form-group input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .form-group input[type="number"]::-webkit-outer-spin-button,
+        .form-group input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+        }
+
+        /* ─── Mode Selector ──────────────────────────── */
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 8px 10px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.3s, border-color 0.3s, color 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-btn .mode-icon {
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .mode-btn .mode-desc {
+            font-size: 10px;
+            font-weight: 400;
+            color: var(--text-muted);
+            opacity: 0;
+            max-height: 0;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn:hover .mode-desc {
+            opacity: 1;
+            max-height: 40px;
+        }
+
+        .mode-btn:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+
+        .mode-btn.active {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background: var(--accent-dim);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .mode-btn.active .mode-desc {
+            opacity: 1;
+            max-height: 40px;
+            color: var(--text-secondary);
+        }
+
+        .mode-btn .mode-label {
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .mode-btn .mode-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 0px;
+            background: var(--accent);
+            color: #fff;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active .mode-badge {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .mode-btn .mode-speed {
+            font-size: 9px;
+            color: var(--text-muted);
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .mode-btn.active .mode-speed {
+            color: var(--text-secondary);
+        }
+
+        /* ─── Social Media Options ───────────────────── */
+
+        .social-options-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, margin 0.3s ease;
+            opacity: 0;
+            margin-bottom: 0;
+        }
+
+        .social-options-container.visible {
+            max-height: 600px;
+            opacity: 1;
+            margin-bottom: 20px;
+        }
+
+        .social-options-panel {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 20px 24px;
+        }
+
+        .social-options-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .social-options-header h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .social-options-header h3 .badge-ultra {
+            background: linear-gradient(135deg, var(--zaucto-blue), var(--zaucto-gold));
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 0px;
+            letter-spacing: 0.3px;
+        }
+
+        .social-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .social-actions button {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 5px 12px;
+            border-radius: 0px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .social-actions button:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background: var(--accent-dim);
+        }
+
+        .social-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .social-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xs);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            user-select: none;
+        }
+
+        .social-checkbox:hover {
+            border-color: var(--text-muted);
+            background: var(--social-hover-bg);
+        }
+
+        .social-checkbox.active {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .social-checkbox input[type="checkbox"] {
+            display: none;
+        }
+
+        .social-checkbox .check-visual {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 0px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .social-checkbox.active .check-visual {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .social-checkbox.active .check-visual svg {
+            display: block;
+        }
+        .social-checkbox .check-visual svg {
+            display: none;
+            width: 12px;
+            height: 12px;
+            color: #fff;
+        }
+
+        .social-checkbox .social-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .social-checkbox.active .social-label {
+            color: var(--text-primary);
+        }
+
+        .social-checkbox .social-label .s-icon {
+            font-size: 16px;
+        }
+
+        /* Platform-specific accent colors */
+        .social-checkbox[data-platform="instagram"].active { border-color: var(--instagram); }
+        .social-checkbox[data-platform="instagram"].active .check-visual { background: var(--instagram); border-color: var(--instagram); }
+        .social-checkbox[data-platform="linkedin"].active { border-color: var(--linkedin); }
+        .social-checkbox[data-platform="linkedin"].active .check-visual { background: var(--linkedin); border-color: var(--linkedin); }
+        .social-checkbox[data-platform="facebook"].active { border-color: var(--facebook); }
+        .social-checkbox[data-platform="facebook"].active .check-visual { background: var(--facebook); border-color: var(--facebook); }
+        .social-checkbox[data-platform="twitter"].active { border-color: var(--twitter); }
+        .social-checkbox[data-platform="twitter"].active .check-visual { background: var(--twitter); border-color: var(--twitter); }
+        .social-checkbox[data-platform="whatsapp"].active { border-color: var(--whatsapp); }
+        .social-checkbox[data-platform="whatsapp"].active .check-visual { background: var(--whatsapp); border-color: var(--whatsapp); }
+        .social-checkbox[data-platform="email"].active { border-color: var(--success); }
+        .social-checkbox[data-platform="email"].active .check-visual { background: var(--success); border-color: var(--success); }
+
+        /* ─── Buttons ────────────────────────────────── */
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-row .btn-scrape {
+            flex: 1;
+        }
+
+        .btn-scrape {
+            padding: 10px 18px;
+            background: var(--btn-scrape-gradient);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.3s, background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-scrape::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.08) 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .btn-scrape:hover:not(:disabled)::before {
+            opacity: 1;
+        }
+
+        .btn-scrape:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-scrape:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-scrape:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ─── Start/Stop Toggle Button ─────────────── */
+
+        .btn-scrape.stop {
+            background: var(--danger);
+            box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-scrape.stop:hover:not(:disabled) {
+            background: var(--danger-hover);
+            box-shadow: 0 8px 24px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-scrape.stop .btn-text {
+            display: none;
+        }
+
+        .btn-scrape.stop .btn-stop-text {
+            display: inline-flex;
+        }
+
+        .btn-scrape.stop .spinner {
+            border-color: rgba(255,255,255,0.3);
+            border-top-color: #fff;
+        }
+
+        .btn-stop-text {
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-cancel {
+            padding: 10px 16px;
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .btn-cancel:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            border-color: var(--text-muted);
+            color: var(--text-muted);
+            background: transparent;
+        }
+
+        .btn-cancel:disabled:hover {
+            background: transparent;
+            border-color: var(--text-muted);
+            box-shadow: none;
+        }
+
+        .btn-clear {
+            padding: 10px 16px;
+            background: transparent;
+            color: var(--warning);
+            border: 1px solid var(--warning);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .btn-clear:hover:not(:disabled) {
+            background: rgba(255, 167, 38, 0.1);
+            border-color: var(--warning);
+            box-shadow: 0 0 16px rgba(255, 167, 38, 0.2);
+        }
+
+        .btn-clear:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-cancel:hover:not(:disabled) {
+            background: rgba(255, 107, 107, 0.1);
+            border-color: var(--danger-hover);
+            box-shadow: 0 0 16px rgba(255, 107, 107, 0.2);
+        }
+
+
+
+        .btn-scrape .spinner {
+            display: none;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        .btn-scrape.loading .spinner {
+            display: block;
+        }
+
+        .btn-scrape.loading .btn-text {
+            display: none;
+        }
+
+        .btn-scrape.loading .btn-loading-text {
+            display: inline;
+        }
+
+        .btn-loading-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ─── Status & Progress ──────────────────────── */
+
+        .status {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            display: none;
+            font-size: 14px;
+            font-weight: 500;
+            animation: fadeSlideIn 0.3s ease-out;
+        }
+
+        .status.visible {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status.info {
+            background: var(--accent-dim);
+            border: 1px solid rgba(108, 92, 231, 0.25);
+            color: var(--accent);
+        }
+
+        .status.success {
+            background: var(--success-dim);
+            border: 1px solid rgba(0, 214, 143, 0.25);
+            color: var(--success);
+        }
+
+        .status.warning {
+            background: var(--warning-dim);
+            border: 1px solid rgba(255, 167, 38, 0.25);
+            color: var(--warning);
+        }
+
+        .status.error {
+            background: rgba(255, 107, 107, 0.12);
+            border: 1px solid rgba(255, 107, 107, 0.25);
+            color: var(--error);
+        }
+
+        .status .status-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .status .status-text {
+            flex: 1;
+        }
+
+        /* ─── Circular Loader ────────────────────────── */
+
+        .circular-loader-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            margin-top: 0;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease, max-height 0.3s ease, padding 0.25s ease, margin-top 0.25s ease;
+        }
+
+        .circular-loader-container.visible {
+            padding: 40px 0 16px;
+            margin-top: 16px;
+            max-height: 600px;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .circular-loader {
+            position: relative;
+            width: 270px;
+            height: 270px;
+        }
+
+        .circular-loader svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .circular-loader .bg-circle {
+            fill: none;
+            stroke: var(--bg-input);
+            stroke-width: 10;
+        }
+
+        .circular-loader .fg-circle {
+            fill: none;
+            stroke: url(#progressGradient);
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-dasharray: 741.4;
+            stroke-dashoffset: 741.4;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .circular-loader .fg-circle.cancelling {
+            stroke: var(--danger);
+        }
+
+        .circular-loader-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .circular-loader-center .count-main {
+            font-size: 40px;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1;
+            letter-spacing: 1px;
+        }
+
+        .circular-loader-center .count-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .circular-loader-center .checkmark {
+            display: none;
+        }
+
+        .circular-loader-center .checkmark.show {
+            display: block;
+            animation: popIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .circular-loader-center .checkmark.show svg {
+            width: 56px;
+            height: 56px;
+        }
+
+        /* ─── Countdown / Blinking Text ───────────── */
+
+        .blinking-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent);
+            line-height: 1.3;
+            animation: pulse 1.5s ease-in-out infinite;
+            max-width: 165px;
+            text-align: center;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            padding: 0 8px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
+
+        .countdown-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        /* ─── Email Banner (outside circle) ──────────── */
+
+        .email-banner-container {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+            margin-bottom: 4px;
+        }
+
+        .email-banner-container.visible {
+            display: flex;
+        }
+
+        .email-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            border-radius: var(--radius-sm);
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            max-width: 520px;
+            text-align: center;
+            line-height: 1.5;
+            animation: fadeSlideIn 0.3s ease-out;
+        }
+
+        .email-banner .eb-icon {
+            flex-shrink: 0;
+            font-size: 16px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+        }
+
+        .email-banner .eb-text {
+            flex: 1;
+        }
+
+        .email-banner .eb-email {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* ─── Results Table ──────────────────────────── */
+
+        .results-section {
+            margin-top: 32px;
+            display: none;
+            animation: fadeSlideIn 0.4s ease-out;
+        }
+
+        .results-section.visible {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .results-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .results-header .count-badge {
+            background: var(--accent);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 0px;
+        }
+
+        .results-header .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .export-btn, .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s, background 0.2s;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-btn:hover, .copy-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background: rgba(108, 92, 231, 0.08);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+            min-width: 900px;
+        }
+
+        thead {
+            background: var(--bg-input);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            transition: background 0.3s ease;
+        }
+
+        thead th {
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        thead th:hover {
+            color: var(--text-secondary);
+        }
+
+        thead th svg {
+            vertical-align: middle;
+            margin-right: 3px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s;
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: var(--tr-hover);
+        }
+
+        tbody tr.fade-in {
+            animation: rowFadeIn 0.3s ease-out;
+        }
+
+        @keyframes rowFadeIn {
+            from { opacity: 0; background: var(--accent-dim); }
+            to { opacity: 1; background: transparent; }
+        }
+
+        tbody tr.fade-in:hover {
+            background: var(--tr-hover);
+        }
+
+        tbody td {
+            padding: 10px 12px;
+            color: var(--text-secondary);
+            vertical-align: middle;
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+
+        tbody td.social-link-cell-parent {
+            min-width: 120px;
+            max-width: 200px;
+        }
+
+        tbody td.name-cell {
+            color: var(--text-primary);
+            font-weight: 600;
+            min-width: 140px;
+            max-width: 220px;
+        }
+
+        /* Consistent row height */
+        tbody tr {
+            height: auto;
+        }
+
+        /* Website column - allow more room for URLs */
+        tbody td.website-cell {
+            max-width: 280px;
+        }
+
+        /* Default 2-line column styling */
+        .td-allow-wrap {
+            white-space: normal;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.4;
+            max-height: 58px;
+            min-width: 160px;
+        }
+
+        tbody td a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.2s;
+            word-break: break-all;
+        }
+
+        tbody td a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+
+        .social-link-cell {
+            font-size: 11px;
+        }
+
+        .social-link-cell .platform-icon {
+            margin-right: 2px;
+        }
+
+        .social-link-cell a {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 0px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-yes {
+            background: var(--success-dim);
+            color: var(--success);
+        }
+
+        .badge-no {
+            background: var(--badge-no-bg);
+            color: var(--text-muted);
+        }
+
+        .badge-rating {
+            background: var(--warning-dim);
+            color: var(--warning);
+        }
+
+        .badge-reviews {
+            background: var(--accent-dim);
+            color: var(--accent);
+        }
+
+        .badge-email {
+            background: var(--success-dim);
+            color: var(--success);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .badge-email:hover {
+            background: rgba(0, 214, 143, 0.2);
+        }
+
+        .badge-social {
+            padding: 2px 6px;
+            border-radius: 0px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        /* ─── Fields Preview (mode column chips) ─── */
+
+        .fields-preview {
+            margin-bottom: 20px;
+            padding: 14px 18px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 0px;
+            animation: fadeSlideIn 0.25s ease-out;
+        }
+
+        .fields-preview .fp-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .fields-preview .fp-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .fp-chip {
+            display: inline-block;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 0px;
+            letter-spacing: 0.3px;
+            transition: all 0.2s ease;
+            animation: chipIn 0.25s ease-out;
+        }
+
+        @keyframes chipIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .fp-chip.mode-fast {
+            background: rgba(37, 99, 235, 0.12);
+            color: #60a5fa;
+        }
+
+        .fp-chip.mode-deep {
+            background: rgba(139, 92, 246, 0.12);
+            color: #a78bfa;
+        }
+
+        .fp-chip.mode-ultra {
+            background: rgba(251, 146, 60, 0.12);
+            color: #fb923c;
+        }
+
+        html.light-mode .fp-chip.mode-fast {
+            background: rgba(37, 99, 235, 0.08);
+            color: #2563eb;
+        }
+
+        html.light-mode .fp-chip.mode-deep {
+            background: rgba(139, 92, 246, 0.08);
+            color: #7c3aed;
+        }
+
+        html.light-mode .fp-chip.mode-ultra {
+            background: rgba(251, 146, 60, 0.08);
+            color: #ea580c;
+        }
+
+        .table-scroll {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .table-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .table-scroll::-webkit-scrollbar-track {
+            background: var(--scrollbar-bg);
+        }
+
+        .table-scroll::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 0px;
+        }
+
+        .table-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            color: var(--text-secondary);
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* ─── Confirm Modal ────────────────────────── */
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 28px 32px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+            animation: fadeSlideIn 0.25s ease-out;
+        }
+
+        .modal-box h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-box h3 .modal-warn-icon {
+            color: var(--warning);
+        }
+
+        .modal-box p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-actions button {
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .modal-actions .btn-modal-cancel {
+            background: var(--toggle-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-actions .btn-modal-cancel:hover {
+            background: var(--toggle-hover);
+            color: var(--text-primary);
+        }
+
+        .modal-actions .btn-modal-confirm {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .modal-actions .btn-modal-confirm:hover {
+            background: var(--danger-hover);
+            box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* ─── Toast Notification ─────────────────────── */
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 12px 20px;
+            box-shadow: var(--toast-shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+        }
+
+        .toast.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast .toast-icon {
+            font-size: 18px;
+        }
+
+        /* ─── Responsive ─────────────────────────────── */
+
+        /* ─── View Toggle (Scrape New / Saved Data) ── */
+
+        .view-toggle-container {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 24px;
+            margin-top: -4px;
+        }
+
+        .view-toggle {
+            display: inline-flex;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+            padding: 4px;
+            gap: 2px;
+            position: relative;
+        }
+
+        .view-toggle .vt-option {
+            position: relative;
+            z-index: 2;
+            padding: 10px 28px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            transition: color 0.3s ease;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-toggle .vt-option:hover {
+            color: var(--text-secondary);
+        }
+
+        .view-toggle .vt-option.active {
+            color: #fff;
+        }
+
+        .view-toggle .vt-slider {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            bottom: 4px;
+            width: calc(50% - 4px);
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 50px;
+            z-index: 1;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+
+        .view-toggle .vt-slider.saved {
+            transform: translateX(100%);
+        }
+
+        /* ─── Page Sections ─────────────────────────── */
+
+        .scrape-new-page {
+            display: block;
+        }
+
+        .scrape-new-page.hidden {
+            display: none;
+        }
+
+        .saved-data-page {
+            display: none;
+        }
+
+        .saved-data-page.visible {
+            display: block;
+        }
+
+        .saved-data-page .sd-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .saved-data-page .sd-search-btn {
+            padding: 8px 18px;
+            background: var(--btn-scrape-gradient);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: auto;
+        }
+
+        .saved-data-page .sd-search-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+        }
+
+        .saved-data-page .sd-placeholder {
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 48px 24px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .saved-data-page .sd-placeholder .sd-ph-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .saved-data-page .sd-placeholder h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .saved-data-page .sd-placeholder p {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* ─── Saved Data Error Banner ─────────────── */
+
+        .sd-error-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 16px;
+            background: rgba(255, 107, 107, 0.12);
+            border: 1px solid rgba(255, 107, 107, 0.25);
+            border-radius: var(--radius-sm);
+            color: var(--error);
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            animation: fadeSlideIn 0.3s ease-out;
+        }
+
+        .sd-error-banner.visible {
+            display: flex;
+        }
+
+        .sd-error-banner .sd-error-dismiss {
+            flex-shrink: 0;
+            background: transparent;
+            border: none;
+            color: var(--error);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .sd-error-banner .sd-error-dismiss:hover {
+            background: rgba(255, 107, 107, 0.15);
+        }
+
+        /* ─── Saved Data Results Table ────────────── */
+
+        .sd-results-section {
+            display: none;
+            margin-top: 16px;
+            animation: fadeSlideIn 0.4s ease-out;
+        }
+
+        .sd-results-section.visible {
+            display: block;
+        }
+
+        .sd-results-section .sd-results-count {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        /* ─── Saved Data Demo Preview ────────────── */
+
+        .sd-demo-banner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(37, 99, 235, 0.15);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            animation: fadeSlideIn 0.3s ease-out;
+        }
+
+        .sd-demo-banner.hidden {
+            display: none;
+        }
+
+        .sd-demo-row {
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+        }
+
+        .sd-demo-row:hover {
+            opacity: 0.85;
+        }
+
+        .sd-demo-row td {
+            font-style: italic;
+        }
+
+        .sd-demo-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 0px;
+            font-size: 10px;
+            font-weight: 700;
+            background: var(--accent-dim);
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* ─── Saved Data Pagination ──────────────── */
+
+        .sd-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 16px 0 4px;
+            animation: fadeSlideIn 0.3s ease-out;
+        }
+
+        .sd-page-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+
+        .sd-page-btn:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background: var(--accent-dim);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .sd-page-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .sd-page-btn svg {
+            flex-shrink: 0;
+        }
+
+        .sd-page-info {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        .sd-page-numbers {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sd-page-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .sd-page-num:hover:not(.active) {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background: var(--accent-dim);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .sd-page-num.active {
+            background: var(--btn-scrape-gradient);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+            cursor: default;
+        }
+
+        .sd-page-ellipsis {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 36px;
+            font-size: 14px;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            user-select: none;
+            pointer-events: none;
+        }
+
+        @media (max-width: 900px) {
+            .mode-selector {
+                flex-direction: column;
+            }
+            .mode-btn .mode-desc {
+                opacity: 1;
+                max-height: 40px;
+            }
+            .social-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 24px 16px 60px;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .card {
+                padding: 20px;
+            }
+
+            .results-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            table {
+                font-size: 12px;
+                min-width: 750px;
+            }
+            thead th, tbody td {
+                padding: 8px 10px;
+            }
+            .btn-row {
+                flex-direction: column;
+            }
+            .social-options-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 480px) {
+            table { min-width: 650px; }
+            .social-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <!-- Main Card -->
+        <div class="card">
+            <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle theme">
+                <!-- Moon icon (dark mode) -->
+                <span class="ico moon-icon" data-ico="moon"></span>
+                <!-- Sun icon (light mode) -->
+                        <span class="ico sun-icon" data-ico="sun"></span>
+            </button>
+
+            <!-- View Toggle -->
+            <div class="view-toggle-container">
+                <div class="view-toggle" id="viewToggle">
+                    <div class="vt-slider" id="vtSlider"></div>
+                    <button type="button" class="vt-option active" data-view="scrape-new" id="vtScrapeNew">
+                        <span class="ico" data-ico="play"></span>
+                        Scrape New
+                    </button>
+                    <button type="button" class="vt-option" data-view="saved-data" id="vtSavedData">
+                        <span class="ico" data-ico="bookmark"></span>
+                        Saved Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrape New Page -->
+            <div class="scrape-new-page" id="scrapeNewPage">
+                <form id="scrapeForm" autocomplete="off">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="keyword">Keyword</label>
+                        <input type="text" id="keyword" placeholder="e.g. Restaurants, Hotels, Cafes" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" placeholder="e.g. Mumbai, India" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="total">Results</label>
+                        <input type="number" id="total" value="10" min="1" max="200" />
+                    </div>
+                    <div class="form-group">
+                        <label for="filterSelect">FILTER</label>
+                        <select id="filterSelect">
+                            <option value="all">All</option>
+                            <option value="none">None</option>
+                            <option value="top_rated">Top Rated</option>
+                            <option value="open_now">Open Now</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Email (optional) -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="emailInput">EMAIL (optional)</label>
+                    <input type="email" id="emailInput" placeholder="your@email.com" />
+                    <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Enter your email to receive the CSV file once scraping completes &mdash; you can close this window.</span>
+                </div>
+
+                <!-- Mode Selector -->
+                <div class="mode-selector">
+                    <button type="button" class="mode-btn active" data-mode="fast" id="modeFast">
+                        <span class="mode-badge"><span class="ico" data-ico="check"></span></span>
+                        <span class="mode-icon"><span class="ico" data-ico="zap"></span></span>
+                        <span class="mode-label">Fast Scrape</span>
+                        <span class="mode-speed">~2s per result</span>
+                        <span class="mode-desc">Basic business info only</span>
+                    </button>
+                    <button type="button" class="mode-btn" data-mode="deep" id="modeDeep">
+                        <span class="mode-badge"><span class="ico" data-ico="check"></span></span>
+                        <span class="mode-icon"><span class="ico" data-ico="search"></span></span>
+                        <span class="mode-label">Deep Mode</span>
+                        <span class="mode-speed">~3s per result</span>
+                        <span class="mode-desc">Extract email &amp; social from Maps page</span>
+                    </button>
+                    <button type="button" class="mode-btn" data-mode="ultra_deep" id="modeUltraDeep">
+                        <span class="mode-badge"><span class="ico" data-ico="check"></span></span>
+                        <span class="mode-icon"><span class="ico" data-ico="search-smile"></span></span>
+                        <span class="mode-label">Ultra Deep</span>
+                        <span class="mode-speed">~15s per result</span>
+                        <span class="mode-desc">Visit website &amp; extract all social links</span>
+                    </button>
+                </div>
+
+                <!-- Dynamic Fields Preview -->
+                <div class="fields-preview" id="fieldsPreview">
+                    <div class="fp-header"><span class="ico" data-ico="clipboard"></span> This mode will extract:</div>
+                    <div class="fp-chips" id="fpChips"></div>
+                </div>
+
+                <!-- Social Media Options (visible only in Ultra Deep mode) -->
+                <div class="social-options-container" id="socialOptions">
+                    <div class="social-options-panel">
+                        <div class="social-options-header">
+                            <h3>
+                                <span class="ico" data-ico="globe"></span>
+                                Social Media &amp; Contact Extraction
+                                <span class="badge-ultra">ULTRA</span>
+                            </h3>
+                            <div class="social-actions">
+                                <button type="button" id="selectAllSocial">Select All</button>
+                                <button type="button" id="deselectAllSocial">Deselect All</button>
+                            </div>
+                        </div>
+                        <div class="social-grid" id="socialGrid">
+                            <label class="social-checkbox active" data-platform="email">
+                                <input type="checkbox" checked data-key="email" />
+                                <span class="check-visual"><span class="ico" data-ico="check"></span></span>
+                                <span class="social-label"><span class="s-icon"><span class="ico" data-ico="mail"></span></span> Email</span>
+                            </label>
+                            <label class="social-checkbox active" data-platform="instagram">
+                                <input type="checkbox" checked data-key="instagram" />
+                                <span class="check-visual"><span class="ico" data-ico="check"></span></span>
+                                <span class="social-label"><span class="s-icon"><span class="ico" data-ico="camera"></span></span> Instagram</span>
+                            </label>
+                            <label class="social-checkbox active" data-platform="linkedin">
+                                <input type="checkbox" checked data-key="linkedin" />
+                                <span class="check-visual"><span class="ico" data-ico="check"></span></span>
+                                <span class="social-label"><span class="s-icon"><span class="ico" data-ico="linkedin"></span></span> LinkedIn</span>
+                            </label>
+                            <label class="social-checkbox active" data-platform="facebook">
+                                <input type="checkbox" checked data-key="facebook" />
+                                <span class="check-visual"><span class="ico" data-ico="check"></span></span>
+                                <span class="social-label"><span class="s-icon"><span class="ico" data-ico="facebook"></span></span> Facebook</span>
+                            </label>
+                            <label class="social-checkbox active" data-platform="twitter">
+                                <input type="checkbox" checked data-key="twitter" />
+                                <span class="check-visual"><span class="ico" data-ico="check"></span></span>
+                                <span class="social-label"><span class="s-icon"><span class="ico" data-ico="twitter"></span></span> Twitter / X</span>
+                            </label>
+                            <label class="social-checkbox active" data-platform="whatsapp">
+                                <input type="checkbox" checked data-key="whatsapp" />
+                                <span class="check-visual"><span class="ico" data-ico="check"></span></span>
+                                <span class="social-label"><span class="s-icon"><span class="ico" data-ico="message-circle"></span></span> WhatsApp</span>
+                            </label>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn-scrape" id="scrapeBtn">
+                        <span class="spinner"></span>
+                        <span class="btn-text"><span class="ico" data-ico="play"></span> Start Scraping</span>
+                        <span class="btn-stop-text"><span class="ico" data-ico="stop"></span> Stop Scraping</span>
+                        <span class="btn-loading-text">Scraping data...</span>
+                    </button>
+                    <button type="button" class="btn-clear" id="clearBtn">
+                        <span class="ico" data-ico="trash"></span> Clear
+                    </button>
+                    <button type="button" class="export-btn" id="exportBtn"><span class="ico" data-ico="download"></span> Export CSV</button>
+                    <button type="button" class="copy-btn" id="copyBtn" title="Copy all data as JSON"><span class="ico" data-ico="clipboard"></span> Copy JSON</button>
+                </div>
+            </form>
+
+            <!-- Status -->
+            <div class="status" id="status">
+                <span class="status-icon" id="statusIcon"></span>
+                <span class="status-text" id="statusText"></span>
+            </div>
+
+            <!-- Circular Loader -->
+            <div class="circular-loader-container" id="circularLoader">
+                <div class="circular-loader">
+                    <svg viewBox="0 0 270 270">
+                        <defs>
+                            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="var(--zaucto-blue)" />
+                                <stop offset="100%" stop-color="var(--zaucto-gold)" />
+                            </linearGradient>
+                        </defs>
+                        <circle class="bg-circle" cx="135" cy="135" r="118" />
+                        <circle class="fg-circle" id="progressCircle" cx="135" cy="135" r="118" />
+                    </svg>
+                    <div class="circular-loader-center">
+                        <div class="count-main" id="circleCount">0 / 10</div>
+                        <div class="count-label" id="circleLabel">Scraping businesses...</div>
+                        <div class="countdown-text" id="countdownDisplay" style="display:none;">~0s remaining</div>
+                        <div class="blinking-text" id="almostDoneText" style="display:none;"><span class="ico" data-ico="clock"></span><span style="display:block;">Almost done,</span><span style="display:block;">results loading soon...</span></div>
+                        <div class="checkmark" id="circleCheckmark">
+                            <span class="ico" data-ico="check"></span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Email Banner (below circle, separate) -->
+                <div class="email-banner-container" id="emailBannerContainer">
+                    <div class="email-banner" id="emailBanner">
+                        <span class="eb-icon">
+                            <span class="ico" data-ico="mail"></span>
+                        </span>
+                        <span class="eb-text">We'll email your results to <span class="eb-email" id="ebEmail">you</span> when done. You can safely close this window.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saved Data Page -->
+        <div class="saved-data-page" id="savedDataPage">
+            <div class="sd-row">
+                <div class="form-group">
+                    <label for="sdKeyword">Keyword</label>
+                    <input type="text" id="sdKeyword" placeholder="e.g. Restaurants, Hotels, Cafes" />
+                </div>
+                <div class="form-group">
+                    <label for="sdLocation">Location</label>
+                    <input type="text" id="sdLocation" placeholder="e.g. Mumbai, India" />
+                </div>
+            </div>
+            <button type="button" class="sd-search-btn" id="sdSearchBtn">
+                <span class="ico" data-ico="search"></span>
+                Search Saved Data
+            </button>
+
+            <div class="sd-btn-row" style="margin: 12px 0; display: flex; gap: 8px;">
+                <button type="button" class="export-btn" id="sdExportBtn">
+                    <span class="ico" data-ico="download"></span> Export CSV
+                </button>
+                <button type="button" class="copy-btn" id="sdCopyBtn" title="Copy all data as JSON">
+                    <span class="ico" data-ico="clipboard"></span> Copy JSON
+                </button>
+                <button type="button" class="btn-clear" id="sdClearBtn">
+                    <span class="ico" data-ico="trash"></span> Clear
+                </button>
+            </div>
+
+            <!-- Saved Data Error Banner -->
+            <div class="sd-error-banner" id="sdErrorBanner">
+                <span id="sdErrorText"></span>
+                <button type="button" class="sd-error-dismiss" id="sdErrorDismiss" title="Dismiss">
+                    <span class="ico" data-ico="close"></span>
+                </button>
+            </div>
+
+            <!-- Saved Data Results Table -->
+            <div class="sd-results-section visible" id="sdResultsSection">
+                <!-- Demo Preview Banner -->
+                <div class="sd-demo-banner" id="sdDemoBanner">
+                    <span class="ico" data-ico="monitor"></span>
+                    <span><span class="sd-demo-badge">Demo Preview</span> — search above to see your real saved data</span>
+                </div>
+                <div class="sd-results-count" id="sdResultsCount"></div>
+                <div class="table-wrapper">
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Company</th>
+                                    <th>Category</th>
+                                    <th>Website</th>
+                                    <th>Phone</th>
+                                    <th>Address</th>
+                                    <th>Rating</th>
+                                    <th>Review</th>
+                                    <th>City</th>
+                                    <th>Pincode</th>
+                                    <th>Map</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sdResultsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Pagination Controls -->
+                <div class="sd-pagination" id="sdPagination" style="display: none;">
+                    <button type="button" class="sd-page-btn" id="sdPrevBtn" disabled>
+                        <span class="ico" data-ico="chevron-left"></span>
+                        Prev
+                    </button>
+                    <div class="sd-page-numbers" id="sdPageNumbers"></div>
+                    <button type="button" class="sd-page-btn" id="sdNextBtn" disabled>
+                        Next
+                        <span class="ico" data-ico="chevron-right"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sd-placeholder" id="sdPlaceholder" style="display:none;">
+                <div class="sd-ph-icon"><span class="ico" data-ico="folder"></span></div>
+                <h4>No data yet</h4>
+                <p>Enter a keyword and location above, then click "Search Saved Data" to find previously scraped results.</p>
+            </div>
+        </div>
+
+        </div>
+
+        <!-- Results -->
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <h2>Scraped Results</h2>
+                    <span class="count-badge" id="countBadge">0</span>
+                </div>
+
+            </div>
+
+            <div class="table-wrapper">
+                <div class="table-scroll" id="tableScroll">                        <table id="resultsTable">
+                        <thead>
+                            <tr id="resultsHeadRow">
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Address</th>
+                                <th>Website</th>
+                                <th>Rating</th>
+                                <th>Reviews</th>
+                                <th>Type</th>
+                                <th>Hours</th>
+                                <th>About</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                            <tr>
+                                <td colspan="21">
+                                    <div class="empty-state">
+                                        <div class="empty-icon"><span class="ico" data-ico="search"></span></div>
+                                        <h3>No data yet</h3>
+                                        <p>Enter a keyword and location above, select your mode, then click "Start Scraping" to get started.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-box">
+            <h3>
+                <span class="modal-warn-icon"><span class="ico" data-ico="alert-triangle"></span></span>
+                Clear All Data?
+            </h3>
+            <p>This will permanently remove all scraped results. You won't be able to undo this action. Make sure to export your data first if needed.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-cancel" id="modalCancel">Cancel</button>
+                <button type="button" class="btn-modal-confirm" id="modalConfirm">Yes, Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span class="toast-icon"><span class="ico" data-ico="check-circle"></span></span>
+        <span class="toast-text" id="toastText">Copied to clipboard!</span>
+    </div>
+
+    <script>
+        // Use relative URLs for API calls (works in any environment)
+        const API_BASE = '';
+
+        const form = document.getElementById('scrapeForm');
+        const btn = document.getElementById('scrapeBtn');
+        let isScraping = false;
+        const status = document.getElementById('status');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
+        const circularLoader = document.getElementById('circularLoader');
+        const progressCircle = document.getElementById('progressCircle');
+        const circleCount = document.getElementById('circleCount');
+        const circleLabel = document.getElementById('circleLabel');
+        const circleCheckmark = document.getElementById('circleCheckmark');
+        const countdownDisplay = document.getElementById('countdownDisplay');
+        const almostDoneText = document.getElementById('almostDoneText');
+        const CIRCUMFERENCE = 660; // 2 * Math.PI * 105 (new larger circle)
+        let completeTimer = null;
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsBody = document.getElementById('resultsBody');
+        const resultsHead = document.querySelector('#resultsTable thead');
+        const countBadge = document.getElementById('countBadge');
+        const exportBtn = document.getElementById('exportBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const toast = document.getElementById('toast');
+        const toastText = document.getElementById('toastText');
+        const socialOptions = document.getElementById('socialOptions');
+        const clearBtn = document.getElementById('clearBtn');
+        const confirmModal = document.getElementById('confirmModal');
+        const modalCancel = document.getElementById('modalCancel');
+        const modalConfirm = document.getElementById('modalConfirm');
+
+        // Mode buttons
+        const modeFast = document.getElementById('modeFast');
+        const modeDeep = document.getElementById('modeDeep');
+        const modeUltraDeep = document.getElementById('modeUltraDeep');
+        const modeBtns = [modeFast, modeDeep, modeUltraDeep];
+
+        let currentMode = 'fast';
+        let currentJobId = null;
+        let pollTimer = null;
+        let countdownTimer = null;
+        let estimatedSeconds = 0;
+        let lastResults = [];
+        let savedResults = [];
+        let sdCurrentPage = 1;
+        let sdTotalPages = 1;
+        let sdTotalCount = 0;
+        const sdPageSize = 20;
+        let previousResultCount = 0;
+        let activeColumns = [];
+
+        /* ─── Clear Button ───────────────────────────── */
+
+        clearBtn.addEventListener('click', () => {
+            confirmModal.classList.add('visible');
+        });
+
+        modalCancel.addEventListener('click', () => {
+            confirmModal.classList.remove('visible');
+        });
+
+        modalConfirm.addEventListener('click', () => {
+            confirmModal.classList.remove('visible');
+            // Clear all data
+            lastResults = [];
+            activeColumns = [];
+            resultsBody.innerHTML = `<tr>
+                <td colspan="21">
+                    <div class="empty-state">
+                        <div class="empty-icon"><span class="ico" data-ico="search"></span></div>
+                        <h3>No data yet</h3>
+                        <p>Enter a keyword and location above, select your mode, then click "Start Scraping" to get started.</p>
+                    </div>
+                </td>
+            </tr>`;
+            resultsSection.classList.remove('visible');
+            countBadge.textContent = '0';
+            hideStatus();
+            showProgress(false);
+            btn.disabled = false;
+            btn.classList.remove('stop', 'loading');
+            isScraping = false;
+            if (currentJobId) {
+                fetch(API_BASE + '/scrape/cancel/' + currentJobId, { method: 'POST' }).catch(() => {});
+            }
+            currentJobId = null;
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+            setStatus('success', '<span class="ico" data-ico="check-circle"></span>', 'All data cleared successfully!');
+            setTimeout(hideStatus, 2500);
+        });
+
+        // Close modal if clicking overlay outside the box
+        confirmModal.addEventListener('click', (e) => {
+            if (e.target === confirmModal) {
+                confirmModal.classList.remove('visible');
+            }
+        });
+
+        /* ─── Mode Selection ─────────────────────────── */
+
+        function updateFieldsPreview() {
+            const chipsContainer = document.getElementById('fpChips');
+            if (!chipsContainer) return;
+
+            const mode = currentMode;
+            const socialOpts = getSocialMediaOptions();
+
+            // Base fields for all modes
+            const fastFields = ['Name', 'Phone Number', 'Address', 'Website', 'Reviews Count', 'Rating', 'Business Type', 'Opening Hours', 'Shopping', 'Pickup', 'Delivery', 'About'];
+
+            let fields = [];
+            let chipClass = 'mode-fast';
+
+            if (mode === 'fast') {
+                fields = [...fastFields];
+                chipClass = 'mode-fast';
+            } else if (mode === 'deep') {
+                fields = [...fastFields, 'Email', 'Instagram', 'Facebook', 'LinkedIn'];
+                chipClass = 'mode-deep';
+            } else if (mode === 'ultra_deep') {
+                // Ultra deep fields: base + email + selected social platforms
+                fields = [...fastFields, 'Email'];
+                // Add selected platforms that are NOT email
+                if (socialOpts) {
+                    for (const [key, enabled] of Object.entries(socialOpts)) {
+                        if (enabled && key !== 'email') {
+                            // Proper display name mapping
+                            const displayNames = { linkedin: 'LinkedIn', facebook: 'Facebook', twitter: 'Twitter', whatsapp: 'WhatsApp', instagram: 'Instagram' };
+                            fields.push(displayNames[key] || key.charAt(0).toUpperCase() + key.slice(1));
+                        }
+                    }
+                }
+                chipClass = 'mode-ultra';
+            }
+
+            let html = fields.map(f => `<span class="fp-chip ${chipClass}">${f}</span>`).join('');
+            chipsContainer.innerHTML = html;
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            modeBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+            socialOptions.classList.toggle('visible', mode === 'ultra_deep');
+            updateFieldsPreview();
+        }
+
+        modeBtns.forEach(btn => {
+            btn.addEventListener('click', () => setMode(btn.dataset.mode));
+        });
+
+        // Initialize fields preview for default mode (Fast Scrape)
+        updateFieldsPreview();
+
+        /* ─── Social Media Checkboxes ────────────────── */
+
+        document.querySelectorAll('.social-checkbox').forEach(label => {
+            const checkbox = label.querySelector('input[type="checkbox"]');
+            checkbox.addEventListener('change', () => {
+                label.classList.toggle('active', checkbox.checked);
+                updateFieldsPreview();
+            });
+        });
+
+        document.getElementById('selectAllSocial').addEventListener('click', () => {
+            document.querySelectorAll('.social-checkbox input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+                cb.closest('.social-checkbox').classList.add('active');
+            });
+            updateFieldsPreview();
+        });
+
+        document.getElementById('deselectAllSocial').addEventListener('click', () => {
+            document.querySelectorAll('.social-checkbox input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+                cb.closest('.social-checkbox').classList.remove('active');
+            });
+            updateFieldsPreview();
+        });
+
+        function getSocialMediaOptions() {
+            const options = {};
+            document.querySelectorAll('.social-checkbox input[type="checkbox"]').forEach(cb => {
+                options[cb.dataset.key] = cb.checked;
+            });
+            return options;
+        }
+
+        /* ─── Helpers ─────────────────────────────────── */
+
+        function setStatus(type, iconSvg, message) {
+            status.className = 'status visible ' + type;
+            statusIcon.innerHTML = iconSvg;
+            statusText.textContent = message;
+        }
+
+        function hideStatus() {
+            status.className = 'status';
+        }
+
+        function showProgress(show) {
+            circularLoader.classList.toggle('visible', show);
+        }
+
+        function updateProgress(scraped, total, label) {
+            const pct = total > 0 ? Math.min(Math.round((scraped / total) * 100), 100) : 0;
+            const offset = CIRCUMFERENCE - (pct / 100) * CIRCUMFERENCE;
+            progressCircle.style.strokeDashoffset = offset;
+            circleCount.textContent = `${scraped} / ${total}`;
+            if (label) circleLabel.textContent = label;
+        }
+
+        /* ─── SVG Icon System ────────────────────────── */
+
+        /* ─── Reusable Icon System ────────────────────── */
+
+        const ICONS = {
+            'moon': 'path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"',
+            'sun': 'circle cx="12" cy="12" r="5"' +
+                '/ line x1="12" y1="1" x2="12" y2="3"' +
+                '/ line x1="12" y1="21" x2="12" y2="23"' +
+                '/ line x1="4.22" y1="4.22" x2="5.64" y2="5.64"' +
+                '/ line x1="18.36" y1="18.36" x2="19.78" y2="19.78"' +
+                '/ line x1="1" y1="12" x2="3" y2="12"' +
+                '/ line x1="21" y1="12" x2="23" y2="12"' +
+                '/ line x1="4.22" y1="19.78" x2="5.64" y2="18.36"' +
+                '/ line x1="18.36" y1="5.64" x2="19.78" y2="4.22"',
+            'play': 'polygon points="5 3 19 12 5 21 5 3"',
+            'bookmark': 'path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"',
+            'check': 'polyline points="20 6 9 17 4 12"',
+            'zap': 'polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"',
+            'search': 'circle cx="11" cy="11" r="8"/ line x1="21" y1="21" x2="16.65" y2="16.65"',
+            'search-smile': 'circle cx="11" cy="11" r="8"/ line x1="21" y1="21" x2="16.65" y2="16.65"/ path d="M7 11a4 4 0 0 1 8 0"/ path d="M8 14c0 0 1 2 3 2s3-2 3-2"',
+            'clipboard': 'path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/ rect x="8" y="2" width="8" height="4" rx="1" ry="1"',
+            'globe': 'circle cx="12" cy="12" r="10"/ line x1="2" y1="12" x2="22" y2="12"/ path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"',
+            'mail': 'path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/ polyline points="22,6 12,13 2,6"',
+            'camera': 'rect x="2" y="2" width="20" height="20" rx="5" ry="5"/ path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/ line x1="17.5" y1="6.5" x2="17.51" y2="6.5"',
+            'linkedin': 'path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/ rect x="2" y="9" width="4" height="12"/ circle cx="4" cy="4" r="2"',
+            'facebook': 'path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"',
+            'twitter': 'path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"',
+            'message-circle': 'path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"',
+            'stop': 'rect x="6" y="6" width="12" height="12" rx="2" ry="2"',
+            'trash': 'polyline points="3 6 5 6 21 6"/ path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"',
+            'download': 'path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/ polyline points="7 10 12 15 17 10"/ line x1="12" y1="15" x2="12" y2="3"',
+            'close': 'line x1="18" y1="6" x2="6" y2="18"/ line x1="6" y1="6" x2="18" y2="18"',
+            'monitor': 'rect x="2" y="3" width="20" height="14" rx="2" ry="2"/ line x1="8" y1="21" x2="16" y2="21"/ line x1="12" y1="17" x2="12" y2="21"',
+            'chevron-left': 'polyline points="15 18 9 12 15 6"',
+            'chevron-right': 'polyline points="9 18 15 12 9 6"',
+            'folder': 'path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"',
+            'clock': 'circle cx="12" cy="12" r="10"/ polyline points="12 6 12 12 16 14"',
+            'alert-triangle': 'path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/ line x1="12" y1="9" x2="12" y2="13"/ line x1="12" y1="17" x2="12.01" y2="17"',
+            'check-circle': 'path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/ polyline points="22 4 12 14.01 9 11.01"',
+            'error-x': 'circle cx="12" cy="12" r="10"/ line x1="15" y1="9" x2="9" y2="15"/ line x1="9" y1="9" x2="15" y2="15"',
+            'youtube': 'path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/ polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"',
+            'tiktok': 'path d="M9 12a4 4 0 1 0 4 4V4h5c0 0 .5 3-2 4.5"',
+            'telegram': 'path d="M22 2L11 13"/ path d="M22 2l-7 20-4-9-9-4 20-7z"',
+            'pinterest': 'path d="M12 2C6.5 2 2 6.5 2 12c0 4.5 3.1 8.3 7.3 9.4-.1-.8-.2-2.1 0-3 .2-.9 1.4-5.9 1.4-5.9s-.4-.7-.4-1.8c0-1.7 1-3 2.2-3 .9 0 1.5.7 1.5 1.6 0 1-.6 2.5-1 3.9-.3 1.2.6 2.1 1.8 2.1 2.1 0 3.7-2.2 3.7-5.4 0-2.8-2-4.8-5-4.8-3.4 0-5.4 2.5-5.4 5.2 0 1 .4 2.1.9 2.7.1.1.1.2.1.4-.1.4-.3 1.2-.3 1.4 0 .2-.2.3-.4.2-1.5-.7-2.4-2.9-2.4-4.7 0-3.8 2.8-7.4 8.1-7.4 4.2 0 7.5 3 7.5 7.1 0 4.2-2.7 7.6-6.4 7.6-1.2 0-2.4-.6-2.8-1.4l-.8 3c-.3 1.1-1.1 2.5-1.6 3.3 1.2.4 2.5.6 3.8.6 5.5 0 10-4.5 10-10S17.5 2 12 2z"',
+            'snapchat': 'path d="M18 8.5c0-3.3-2.7-6-6-6s-6 2.7-6 6c0 1.5.6 2.9 1.5 3.9-.2.2-.4.4-.5.5-.3.3-.4.7-.8.8-.3.1-.6-.1-1-.2-.5-.1-.9-.3-1.3-.2-.6.1-.8.4-.7.9.1.3.5.6 1 .9.5.3 1.1.6 1.5.8.4.2.7.6.8 1.1.1.3 0 .7.1 1 .1.4.4.6.9.7.3.1.6.2 1 .3.4.1.7.3.9.6.2.3.4.9.6 1.2.3.4.7.6 1.3.6s1.3-.9 1.7-.9 1.1.9 1.7.9c.6 0 .9-.2 1.3-.6.2-.3.4-.9.6-1.2.2-.3.5-.5.9-.6.4-.1.7-.2 1-.3.4-.1.7-.3.9-.7.1-.3 0-.7.1-1 .1-.5.4-.9.8-1.1.4-.2 1-.5 1.5-.8.5-.3.9-.6 1-.9.1-.5-.1-.8-.7-.9-.4-.1-.8.1-1.3.2-.4.1-.7.3-1 .2-.4-.1-.5-.5-.8-.8-.1-.1-.3-.3-.5-.5.9-1 1.5-2.4 1.5-3.9z"',
+            'star': 'polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"',
+            'spinner': 'circle cx="12" cy="12" r="10"/ path d="M12 6v6l4 2"',
+            'external-link': 'path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/ polyline points="15 3 21 3 21 9"/ line x1="10" y1="14" x2="21" y2="3"',
+        };
+
+        // Icons that need fill="currentColor" (no stroke)
+        const FILL_ICONS = new Set(["linkedin","facebook","twitter","star","tiktok","telegram","pinterest","snapchat"]);
+
+        function icon(name, size) {
+            const content = ICONS[name];
+            if (!content) return '';
+            size = size || 16;
+            const isFill = FILL_ICONS.has(name);
+            const attrs = isFill
+                ? 'fill="currentColor" stroke="none"'
+                : 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+            // Convert element separators (/ ) to proper self-closing tags (/><)
+            const elements = content.replace(/\/\s*/g, '/><');
+            return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" ${attrs}><${elements}/></svg>`;
+        }
+
+        // Wait for DOM then hydrate all .ico[data-ico] placeholders
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.ico[data-ico]').forEach(el => {
+                const name = el.dataset.ico;
+                const size = parseInt(el.dataset.size) || 16;
+                el.innerHTML = icon(name, size);
+            });
+        });
+
+        function getModeIcon() {
+            return currentMode === 'fast' ? icon('bolt') : currentMode === 'deep' ? icon('search') : icon('detective');
+        }
+
+        function getModeLabel() {
+            return currentMode === 'fast' ? 'Fast' : currentMode === 'deep' ? 'Deep' : 'Ultra Deep';
+        }
+
+        function updateProgressBarStyle() {
+            progressCircle.className = 'fg-circle';
+        }
+
+        function setFormEnabled(enabled) {
+            const inputs = form.querySelectorAll('input, select');
+            inputs.forEach(inp => inp.disabled = !enabled);
+            modeBtns.forEach(b => b.disabled = !enabled);
+            if (enabled) {
+                isScraping = false;
+                btn.classList.remove('stop', 'loading');
+                btn.disabled = false;
+            }
+        }
+
+        function showToast(message, iconName = 'check-circle') {
+            toast.querySelector('.toast-icon').innerHTML = icon(iconName);
+            toastText.textContent = message;
+            toast.classList.add('visible');
+            clearTimeout(toast._hideTimer);
+            toast._hideTimer = setTimeout(() => toast.classList.remove('visible'), 2500);
+        }
+
+        function formatPhone(phone) {
+            return phone || '—';
+        }
+
+        function formatWebsite(url) {
+            if (!url) return '—';
+            const display = url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+            return `<a href="https://${url.startsWith('http') ? url : 'https://' + url}" target="_blank" rel="noopener">${display}</a>`;
+        }
+
+        function formatEmail(email) {
+            if (!email) return '—';
+            return `<a href="mailto:${email}" class="badge badge-email">${icon('mail')} ${email}</a>`;
+        }
+
+        function formatSocialLink(platform, url) {
+            if (!url) return '—';
+            const display = url.replace(/^https?:\/\//, '').substring(0, 25) + (url.replace(/^https?:\/\//, '').length > 25 ? '…' : '');
+            return `<div class="social-link-cell"><a href="${url}" target="_blank" rel="noopener"><span class="platform-icon">${icon(platform)}</span>${display}</a></div>`;
+        }
+
+        function formatText(val) {
+            if (!val || val === 'None Found') return '—';
+            return val;
+        }
+
+        function truncate(str, len) {
+            if (!str || str.length <= len) return str || '—';
+            return str.substring(0, len) + '…';
+        }
+
+        /* ─── Column definitions for dynamic rendering ─── */
+
+        const COLUMN_RENDER = {
+            'name':        (p, i) => `<td class="name-cell" title="${p.name || ''}">${formatText(p.name)}</td>`,
+            'address':     (p, i) => `<td class="td-allow-wrap" title="${p.address || ''}">${truncate(formatText(p.address), 120)}</td>`,
+            'website':     (p, i) => `<td class="website-cell" title="${p.website || ''}">${formatWebsite(p.website)}</td>`,
+            'phone_number': (p, i) => `<td title="${p.phone_number || ''}">${formatPhone(p.phone_number)}</td>`,
+            'email':       (p, i) => `<td class="social-link-cell-parent" title="${p.email || ''}">${formatEmail(p.email)}</td>`,
+            'instagram':   (p, i) => `<td class="social-link-cell-parent" title="${p.instagram || ''}">${formatSocialLink('instagram', p.instagram)}</td>`,
+            'linkedin':    (p, i) => `<td class="social-link-cell-parent" title="${p.linkedin || ''}">${formatSocialLink('linkedin', p.linkedin)}</td>`,
+            'facebook':    (p, i) => `<td class="social-link-cell-parent" title="${p.facebook || ''}">${formatSocialLink('facebook', p.facebook)}</td>`,
+            'twitter':     (p, i) => `<td class="social-link-cell-parent" title="${p.twitter || ''}">${formatSocialLink('twitter', p.twitter)}</td>`,
+            'whatsapp':    (p, i) => `<td class="social-link-cell-parent" title="${p.whatsapp || ''}">${formatSocialLink('whatsapp', p.whatsapp)}</td>`,
+            'youtube':     (p, i) => `<td class="social-link-cell-parent" title="${p.youtube || ''}">${formatSocialLink('youtube', p.youtube)}</td>`,
+            'tiktok':      (p, i) => `<td class="social-link-cell-parent" title="${p.tiktok || ''}">${formatSocialLink('tiktok', p.tiktok)}</td>`,
+            'telegram':    (p, i) => `<td class="social-link-cell-parent" title="${p.telegram || ''}">${formatSocialLink('telegram', p.telegram)}</td>`,
+            'pinterest':   (p, i) => `<td class="social-link-cell-parent" title="${p.pinterest || ''}">${formatSocialLink('pinterest', p.pinterest)}</td>`,
+            'snapchat':    (p, i) => `<td class="social-link-cell-parent" title="${p.snapchat || ''}">${formatSocialLink('snapchat', p.snapchat)}</td>`,
+            'reviews_average': (p, i) => `<td>${p.reviews_average ? `<span class="badge badge-rating">${icon('star')} ${p.reviews_average}</span>` : '—'}</td>`,
+            'reviews_count': (p, i) => `<td>${p.reviews_count ? `<span class="badge badge-reviews">${p.reviews_count.toLocaleString()}</span>` : '—'}</td>`,
+            'place_type':  (p, i) => `<td>${formatText(p.place_type)}</td>`,
+            'opens_at':    (p, i) => `<td>${formatText(p.opens_at)}</td>`,
+            'store_shopping': (p, i) => `<td>${p.store_shopping === 'Yes' ? `<span class="badge badge-yes">${icon('check')} Yes</span>` : `<span class="badge badge-no">No</span>`}</td>`,
+            'in_store_pickup': (p, i) => `<td>${p.in_store_pickup === 'Yes' ? `<span class="badge badge-yes">${icon('check')} Yes</span>` : `<span class="badge badge-no">No</span>`}</td>`,
+            'store_delivery': (p, i) => `<td>${p.store_delivery === 'Yes' ? `<span class="badge badge-yes">${icon('check')} Yes</span>` : `<span class="badge badge-no">No</span>`}</td>`,
+            'introduction': (p, i) => `<td class="td-allow-wrap" title="${p.introduction || ''}">${truncate(formatText(p.introduction), 160)}</td>`,
+        };
+
+        const COLUMN_LABELS = {
+            'name': 'Name', 'address': 'Address', 'website': 'Website', 'phone_number': 'Phone',
+            'email': 'Email',
+            'instagram': 'Instagram', 'linkedin': 'LinkedIn', 'facebook': 'Facebook', 'twitter': 'Twitter / X',
+            'whatsapp': 'WhatsApp', 'youtube': 'YouTube', 'tiktok': 'TikTok', 'telegram': 'Telegram',
+            'pinterest': 'Pinterest', 'snapchat': 'Snapchat',
+            'reviews_average': 'Rating', 'reviews_count': 'Reviews',
+            'place_type': 'Type', 'opens_at': 'Hours',
+            'store_shopping': 'Shopping', 'in_store_pickup': 'Pickup', 'store_delivery': 'Delivery',
+            'introduction': 'About',
+        };
+
+        function renderRow(place, index, columns) {
+            if (!columns) columns = activeColumns;
+            let cells = `<td>${index}</td>`;
+            columns.forEach(col => {
+                if (COLUMN_RENDER[col]) {
+                    cells += COLUMN_RENDER[col](place, index);
+                }
+            });
+            return `<tr class="fade-in">${cells}</tr>`;
+        }
+
+        function buildTableHeader(columns) {
+            if (!columns) columns = activeColumns;
+            let html = '<tr><th>#</th>';
+            columns.forEach(col => {
+                const label = COLUMN_LABELS[col] || col;
+                html += `<th>${label}</th>`;
+            });
+            html += '</tr>';
+            return html;
+        }
+
+        function renderTable(results, columns) {
+            if (!columns) columns = activeColumns;
+
+            if (!results || results.length === 0) {
+                const colspan = columns.length + 1;
+                resultsBody.innerHTML = `
+                    <tr>
+                        <td colspan="${colspan}">
+                            <div class="empty-state">
+                                <div class="empty-icon"><span class="ico" data-ico="mail"></span></div>
+                                <h3>No results found</h3>
+                                <p>Try a different keyword or location.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Build dynamic header based on active columns
+            resultsHead.innerHTML = buildTableHeader(columns);
+
+            let html = '';
+            results.forEach((place, i) => {
+                html += renderRow(place, i + 1, columns);
+            });
+            resultsBody.innerHTML = html;
+            countBadge.textContent = results.length;
+        }
+
+        function appendNewResults(results) {
+            if (results.length <= previousResultCount) return;
+
+            const tbody = resultsBody;
+            if (previousResultCount === 0) {
+                // Rebuild header with mode-appropriate columns on first append
+                resultsHead.innerHTML = buildTableHeader(activeColumns);
+                tbody.innerHTML = '';
+            }
+
+            for (let i = previousResultCount; i < results.length; i++) {
+                const rowHtml = renderRow(results[i], i + 1, activeColumns);
+                tbody.insertAdjacentHTML('beforeend', rowHtml);
+            }
+
+            previousResultCount = results.length;
+            countBadge.textContent = results.length;
+            resultsSection.classList.add('visible');
+        }
+
+        function appendNewResults(results) {
+            if (results.length <= previousResultCount) return;
+
+            const tbody = resultsBody;
+            if (previousResultCount === 0) {
+                tbody.innerHTML = '';
+            }
+
+            for (let i = previousResultCount; i < results.length; i++) {
+                const rowHtml = renderRow(results[i], i + 1);
+                tbody.insertAdjacentHTML('beforeend', rowHtml);
+            }
+
+            previousResultCount = results.length;
+            countBadge.textContent = results.length;
+            resultsSection.classList.add('visible');
+        }
+
+        function exportCSV(results) {
+            if (!results || results.length === 0) return;
+            const headers = Object.keys(results[0]);
+            const csvRows = [headers.join(',')];
+            for (const row of results) {
+                const values = headers.map(h => {
+                    let val = row[h] !== null && row[h] !== undefined ? String(row[h]) : '';
+                    if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+                        val = '"' + val.replace(/"/g, '""') + '"';
+                    }
+                    return val;
+                });
+                csvRows.push(values.join(','));
+            }
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `zaucto_results_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function copyJSON(results) {
+            if (!results || results.length === 0) {
+                showToast('No data to copy', 'alert');
+                return;
+            }
+            const json = JSON.stringify(results, null, 2);
+            navigator.clipboard.writeText(json).then(() => {
+                showToast(`Copied ${results.length} results as JSON!`, 'check-circle');
+            }).catch(() => {
+                showToast('Failed to copy', 'x-circle');
+            });
+        }
+
+        /* ─── Polling ─────────────────────────────────── */        function startCountdown(mode, total, locationCount) {
+            // Calculate estimated seconds based on mode speed
+    let secsPerResult = 2; // fast mode default
+    if (mode === 'deep') secsPerResult = 3;
+    else if (mode === 'ultra_deep') secsPerResult = 15;
+    // Factor in number of locations for multi-scraping (each location has browser overhead)
+    const locCount = locationCount || 1;
+    const overheadPerLocation = 15; // browser launch + search time
+    estimatedSeconds = Math.max(10, (total * secsPerResult) + (locCount * overheadPerLocation));
+
+            let remaining = estimatedSeconds;
+
+            // Show initial countdown display
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            countdownDisplay.textContent = `~${mins}:${secs.toString().padStart(2, '0')} remaining`;
+            countdownDisplay.style.display = 'block';
+            almostDoneText.style.display = 'none';
+
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+
+            countdownTimer = setInterval(() => {
+                remaining--;
+
+                if (remaining <= 0) {
+                    // Timer expired – show blinking "Almost done" message
+                    clearInterval(countdownTimer);
+                    countdownTimer = null;
+                    countdownDisplay.style.display = 'none';
+                    almostDoneText.style.display = 'block';
+                    return;
+                }
+
+                const m = Math.floor(remaining / 60);
+                const s = remaining % 60;
+                countdownDisplay.textContent = `~${m}:${s.toString().padStart(2, '0')} remaining`;
+            }, 1000);
+        }
+
+        function clearCountdown() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+            countdownDisplay.style.display = 'none';
+            almostDoneText.style.display = 'none';
+            estimatedSeconds = 0;
+        }
+
+        function startPolling(jobId, mode, total, locationCount) {
+            currentJobId = jobId;
+            previousResultCount = 0;  // Reset for new scrape
+            let pollCount = 0;
+
+            // Start the estimated countdown timer (factor in multiple locations)
+            startCountdown(mode, total, locationCount);
+
+            function getPollInterval() {
+                // Adaptive polling: faster at start, slower as time passes
+                pollCount++;
+                if (pollCount < 5) return 1500;     // First 5 polls: every 1.5s
+                if (pollCount < 15) return 2000;    // Next 10 polls: every 2s
+                if (pollCount < 30) return 3000;    // Next 15 polls: every 3s
+                return 4000;                         // After that: every 4s
+            }
+
+            function poll() {
+                if (!currentJobId) return;
+
+                fetch(`${API_BASE}/scrape/status/${currentJobId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        const total = data.total || 1;
+                        const scraped = data.scraped_so_far || 0;
+
+                        // Store active columns from status response
+                        if (data.columns) {
+                            activeColumns = data.columns;
+                        }
+
+                        // Update progress with location info for multi-scraping
+                        let label = 'Scraping businesses...';
+                        if (data.multi_location && data.location_info) {
+                            const li = data.location_info;
+                            const locName = li.current_location ? li.current_location.charAt(0).toUpperCase() + li.current_location.slice(1) : '';
+                            label = locName
+                                ? `${locName} (${li.current_index + 1}/${li.total_locations})`
+                                : `Location ${li.current_index + 1}/${li.total_locations}`;
+                        }
+                        updateProgress(scraped, total, label);
+
+                        // Live-update results table
+                        if (data.results && data.results.length > 0) {
+                            appendNewResults(data.results);
+                        }
+
+                        // Handle final states
+                        if (data.status === 'completed') {
+                            stopPolling(true);
+                            lastResults = data.results || [];
+                            // Hide loader immediately, show result
+                            const word = lastResults.length === 1 ? 'result' : 'results';
+                            setStatus('success', icon('check-circle'), `Scraped ${lastResults.length} ${word} successfully!`);
+                            showProgress(false);
+                            setFormEnabled(true);
+                            resultsSection.classList.add('visible');
+                            if (lastResults.length > 0) renderTable(lastResults);
+                            return;
+                        }
+
+                        if (data.status === 'cancelled') {
+                            stopPolling(true);
+                            lastResults = data.results || [];
+                            const msg = lastResults.length > 0
+                                ? `Cancelled. Got ${lastResults.length} result${lastResults.length === 1 ? '' : 's'} so far.`
+                                : 'Scraping was cancelled. No results obtained.';
+                            setStatus('warning', icon('alert'), msg);            progressCircle.classList.add('cancelling');
+    circleLabel.textContent = 'Cancelled';
+                            setFormEnabled(true);
+                            if (lastResults.length > 0) {
+                                resultsSection.classList.add('visible');
+                                renderTable(lastResults);
+                            }
+                            return;
+                        }
+
+                        if (data.status === 'error') {
+                            stopPolling(true);
+                            setStatus('error', icon('x-circle'), 'Error: ' + (data.error || 'Unknown error'));
+                            showProgress(false);
+                            setFormEnabled(true);
+                            return;
+                        }
+
+                        // Still running – poll again with adaptive interval
+                        pollTimer = setTimeout(poll, getPollInterval());
+                    })
+                    .catch(err => {
+                        stopPolling(true);
+                        setStatus('error', icon('x-circle'), 'Connection error: ' + err.message);
+                        showProgress(false);
+                        setFormEnabled(true);
+                    });
+            }
+
+            poll();
+        }
+
+        function stopPolling(reset) {
+            clearCountdown();
+            if (pollTimer) {
+                clearTimeout(pollTimer);
+                pollTimer = null;
+            }
+            if (reset) currentJobId = null;
+        }
+
+        /* ─── Cancel ──────────────────────────────────── */
+
+        function cancelScrape() {
+            if (!currentJobId) return;
+
+            btn.disabled = true;
+            circleLabel.textContent = 'Cancelling...';
+            progressCircle.classList.add('cancelling');
+
+            fetch(`${API_BASE}/scrape/cancel/${currentJobId}`, { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    // The poller will pick up the "cancelled" status
+                })
+                .catch(err => {
+                    setStatus('error', icon('x-circle'), 'Cancel request failed: ' + err.message);
+                    btn.disabled = false;
+                    isScraping = true;
+                });
+        }
+
+        /* ─── Form Submit ─────────────────────────────── */
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const keyword = document.getElementById('keyword').value.trim();
+            const location = document.getElementById('location').value.trim();
+            const total = parseInt(document.getElementById('total').value) || 10;
+
+            if (!keyword || !location) {
+                setStatus('error', icon('alert'), 'Please enter both a keyword and a location.');
+                return;
+            }
+
+            // Clean up any previous job polling
+            stopPolling(false);
+
+            // Switch button to Stop mode
+            btn.classList.add('stop');
+            isScraping = true;
+            progressCircle.classList.remove('cancelling');
+            updateProgressBarStyle();                        if (completeTimer) clearTimeout(completeTimer);
+                        showProgress(true);
+                        // Show email notification if user provided one
+                        const emailVal = document.getElementById('emailInput').value.trim();
+                        const ebContainer = document.getElementById('emailBannerContainer');
+                        const ebEmail = document.getElementById('ebEmail');
+                        if (emailVal && emailVal.includes('@')) {
+                            ebEmail.textContent = emailVal;
+                            ebContainer.classList.add('visible');
+                        } else {
+                            ebContainer.classList.remove('visible');
+                        }
+            updateProgress(0, total, 'Starting scrape...');
+            hideStatus();
+            resultsSection.classList.remove('visible');
+            previousResultCount = 0;
+
+            const modeLabel = getModeLabel();
+            setStatus('info', icon('clock'), `Searching for "${keyword}" in "${location}" [${modeLabel} mode]...`);
+
+            // Build request payload
+            const filterType = document.getElementById('filterSelect').value;
+            const userEmail = document.getElementById('emailInput').value.trim();
+
+            const payload = {
+                keyword,
+                location,
+                total,
+                mode: currentMode,
+                filter_type: filterType,
+                email: userEmail,
+            };
+
+            // Include social media options for ultra deep mode
+            if (currentMode === 'ultra_deep') {
+                payload.social_media_options = getSocialMediaOptions();
+            }
+
+            try {
+                const resp = await fetch(`${API_BASE}/scrape`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // Check if response body is empty before parsing
+                const text = await resp.text();
+                if (!text) {
+                    throw new Error('Backend returned an empty response. Make sure the Flask server is running on port 5000.');
+                }
+
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (parseErr) {
+                    throw new Error('Invalid JSON from backend: ' + text.substring(0, 100));
+                }
+
+                if (!resp.ok) {
+                    throw new Error(data.error || 'Server error');
+                }
+
+                // Store active columns for dynamic table rendering
+                if (data.columns) {
+                    activeColumns = data.columns;
+                }
+
+                // Start polling for results
+                const locCount = (data.multi_location && data.locations) ? data.locations.length : 1;
+                startPolling(data.job_id, currentMode, total, locCount);
+
+            } catch (err) {
+                setFormEnabled(true);
+                showProgress(false);
+                setStatus('error', icon('x-circle'), 'Error: ' + err.message);
+            }
+        });
+
+        // Scrape button toggles between Start and Stop
+        btn.addEventListener('click', function(e) {
+            if (isScraping) {
+                // Currently scraping → stop
+                e.preventDefault();
+                cancelScrape();
+            } else {
+                // Not scraping → start (trigger form submit)
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        exportBtn.addEventListener('click', () => exportCSV(lastResults));
+        copyBtn.addEventListener('click', () => copyJSON(lastResults));
+
+        /* ─── Saved Data Buttons ────────────────────────── */
+
+        const sdExportBtn = document.getElementById('sdExportBtn');
+        const sdCopyBtn = document.getElementById('sdCopyBtn');
+        const sdClearBtn = document.getElementById('sdClearBtn');
+        const sdSearchBtn = document.getElementById('sdSearchBtn');
+        const sdKeyword = document.getElementById('sdKeyword');
+        const sdLocation = document.getElementById('sdLocation');
+        const sdErrorBanner = document.getElementById('sdErrorBanner');
+        const sdErrorText = document.getElementById('sdErrorText');
+        const sdErrorDismiss = document.getElementById('sdErrorDismiss');
+        const sdResultsSection = document.getElementById('sdResultsSection');
+        const sdResultsBody = document.getElementById('sdResultsBody');
+        const sdResultsCount = document.getElementById('sdResultsCount');
+        const sdPlaceholder = document.getElementById('sdPlaceholder');
+        const sdDemoBanner = document.getElementById('sdDemoBanner');
+
+        // ─── Demo Data ───────────────────────────────────
+
+        const DEMO_DATA = [
+            { name: 'Sample Cafe', category: 'Cafe', website: 'www.example.com', phone: '+91 98765 43210', address: '123 Sample Street, Demo Area', rating: 4.5, reviews: 120, city: 'Mumbai', pincode: '400001', map: '#' },
+            { name: 'Demo Restaurant', category: 'Restaurant', website: 'www.example.com', phone: '+91 98765 43211', address: '456 Demo Road, Sample Nagar', rating: 4.2, reviews: 85, city: 'Thane', pincode: '400601', map: '#' },
+            { name: 'Example Hotel', category: 'Hotel', website: 'www.example.com', phone: '+91 98765 43212', address: '789 Placeholder Lane, Test Colony', rating: 4.7, reviews: 340, city: 'Mumbai', pincode: '400002', map: '#' },
+            { name: 'Test Bakery', category: 'Bakery', website: 'www.example.com', phone: '+91 98765 43213', address: '12 Demo Complex, Sample Estate', rating: 4.0, reviews: 56, city: 'Navi Mumbai', pincode: '400701', map: '#' },
+            { name: 'Placeholder Salon', category: 'Salon', website: 'www.example.com', phone: '+91 98765 43214', address: '34 Example Plaza, Demo Heights', rating: 4.3, reviews: 98, city: 'Mumbai', pincode: '400003', map: '#' },
+        ];
+
+        function renderDemoData() {
+            savedResults = [];
+            sdDemoBanner.classList.remove('hidden');
+            sdResultsCount.textContent = ''; sdResultsCount.innerHTML = '<span class="ico" data-ico="clipboard"></span> Demo Preview — search above to see your real saved data';
+            let html = '';
+            for (const d of DEMO_DATA) {
+                html += `<tr class="sd-demo-row">
+                    <td class="name-cell">${d.name}</td>
+                    <td><span class="sd-demo-badge">${d.category}</span></td>
+                    <td class="website-cell"><a href="http://${d.website}" target="_blank" rel="noopener">${d.website}</a></td>
+                    <td>${d.phone}</td>
+                    <td class="td-allow-wrap">${d.address}</td>
+                    <td><span class="badge-rating badge">${d.rating}</span></td>
+                    <td><span class="badge-reviews badge">${d.reviews}</span></td>
+                    <td>${d.city}</td>
+                    <td>${d.pincode}</td>
+                    <td><a href="${d.map}" target="_blank" rel="noopener">View on Map</a></td>
+                </tr>`;
+            }
+            sdResultsBody.innerHTML = html;
+            sdResultsSection.classList.add('visible');
+            sdPlaceholder.style.display = 'none';
+        }
+
+        function showSdError(msg) {
+            sdErrorText.textContent = msg;
+            sdErrorBanner.classList.add('visible');
+        }
+
+        function hideSdError() {
+            sdErrorBanner.classList.remove('visible');
+        }
+
+        sdErrorDismiss.addEventListener('click', hideSdError);
+
+        // Show demo data on page load
+        renderDemoData();
+
+        function renderResultsTable(results) {
+            if (!results || results.length === 0) {
+                sdResultsBody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon"><span class="ico" data-ico="search"></span></div><h3>No results on this page</h3></div></td></tr>`;
+                return;
+            }
+            let html = '';
+            for (const r of results) {
+                const website = r.website ? `<a href="${r.website}" target="_blank" rel="noopener">${r.website}</a>` : '-';
+                let mapLink = '-';
+                if (r.map) {
+                    mapLink = `<a href="${r.map}" target="_blank" rel="noopener">View on Map</a>`;
+                } else if (r.place_url) {
+                    mapLink = `<a href="${r.place_url}" target="_blank" rel="noopener">View on Map</a>`;
+                }
+                const rating = r.rating != null ? `<span class="badge-rating badge">${r.rating}</span>` : '-';
+                const review = r.review != null ? `<span class="badge-reviews badge">${r.review}</span>` : '-';
+
+                html += `<tr class="fade-in">
+                    <td class="name-cell">${r.name || r.company || '-'}</td>
+                    <td>${r.place_type || r.category || '-'}</td>
+                    <td class="website-cell">${website}</td>
+                    <td>${r.phone_number || r.phone || '-'}</td>
+                    <td class="td-allow-wrap">${r.address || '-'}</td>
+                    <td>${rating}</td>
+                    <td>${review}</td>
+                    <td>${r.city || '-'}</td>
+                    <td>${r.pincode || r.pin_code || '-'}</td>
+                    <td>${mapLink}</td>
+                </tr>`;
+            }
+            sdResultsBody.innerHTML = html;
+        }
+
+        function generatePagination(current, total) {
+            if (total <= 7) {
+                return Array.from({length: total}, (_, i) => i + 1);
+            }
+            const pages = [];
+            pages.push(1);
+            if (current > 3) {
+                pages.push('...');
+            }
+            const start = Math.max(2, current - 1);
+            const end = Math.min(total - 1, current + 1);
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+            if (current < total - 2) {
+                pages.push('...');
+            }
+            pages.push(total);
+            return pages;
+        }
+
+        function updateSdPagination() {
+            const pagination = document.getElementById('sdPagination');
+            const pageNumbers = document.getElementById('sdPageNumbers');
+            const prevBtn = document.getElementById('sdPrevBtn');
+            const nextBtn = document.getElementById('sdNextBtn');
+
+            const countWord = sdTotalCount === 1 ? 'result' : 'results';
+
+            if (sdTotalPages <= 1) {
+                pagination.style.display = 'none';
+                sdResultsCount.textContent = `Found ${sdTotalCount} ${countWord}`;
+                return;
+            }
+
+            pagination.style.display = 'flex';
+
+            const from = (sdCurrentPage - 1) * sdPageSize + 1;
+            const to = Math.min(sdCurrentPage * sdPageSize, sdTotalCount);
+            sdResultsCount.textContent = `Found ${sdTotalCount} ${countWord} — showing ${from}–${to}`;
+
+            // Generate numbered page buttons
+            const pages = generatePagination(sdCurrentPage, sdTotalPages);
+            pageNumbers.innerHTML = pages.map(item => {
+                if (item === '...') {
+                    return '<span class="sd-page-ellipsis">...</span>';
+                }
+                const active = item === sdCurrentPage ? ' active' : '';
+                return `<button type="button" class="sd-page-num${active}" data-page="${item}">${item}</button>`;
+            }).join('');
+
+            // Add click handlers to page number buttons
+            pageNumbers.querySelectorAll('.sd-page-num:not(.active)').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    goToSdPage(parseInt(btn.dataset.page));
+                });
+            });
+
+            prevBtn.disabled = sdCurrentPage <= 1;
+            nextBtn.disabled = sdCurrentPage >= sdTotalPages;
+        }
+
+        function renderSavedResults(data) {
+            savedResults = data.results || [];
+            sdTotalCount = data.total || 0;
+            sdCurrentPage = data.page || 1;
+            sdTotalPages = data.total_pages || 1;
+
+            sdDemoBanner.classList.add('hidden');
+            sdPlaceholder.style.display = 'none';
+            sdResultsSection.classList.add('visible');
+
+            if (sdTotalCount === 0) {
+                sdResultsCount.textContent = 'No saved data found for this keyword/location.';
+                sdResultsBody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon"><span class="ico" data-ico="search"></span></div><h3>No saved data found</h3><p>Try a different keyword or location.</p></div></td></tr>`;
+                document.getElementById('sdPagination').style.display = 'none';
+                return;
+            }
+
+            renderResultsTable(data.results);
+            updateSdPagination();
+        }
+
+        function goToSdPage(page) {
+            if (page < 1 || page > sdTotalPages || page === sdCurrentPage) return;
+            sdCurrentPage = page;
+            loadSdPage();
+        }
+
+        function navigateSdPage(direction) {
+            const newPage = sdCurrentPage + direction;
+            if (newPage < 1 || newPage > sdTotalPages) return;
+            sdCurrentPage = newPage;
+            loadSdPage();
+        }
+
+        function loadSdPage() {
+            const kw = sdKeyword.value.trim();
+            const loc = sdLocation.value.trim();
+
+            const params = new URLSearchParams();
+            if (kw) params.set('keyword', kw);
+            if (loc) params.set('location', loc);
+            params.set('page', sdCurrentPage);
+            params.set('limit', sdPageSize);
+
+            fetch(API_BASE + '/saved-data/search?' + params.toString())
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        showSdError(data.error + (data.details ? ': ' + data.details : ''));
+                    } else {
+                        renderSavedResults(data);
+                    }
+                })
+                .catch(err => {
+                    showSdError('Network error: ' + err.message);
+                });
+        }
+
+sdSearchBtn.addEventListener('click', () => {
+    hideSdError();
+    const kw = sdKeyword.value.trim();
+    const loc = sdLocation.value.trim();
+
+    if (!kw && !loc) {
+        showSdError('Please provide a keyword or location to search.');
+        return;
+    }
+
+    // Reset to page 1 on new search
+    sdCurrentPage = 1;
+
+    // Disable button during request
+    sdSearchBtn.disabled = true;
+    sdSearchBtn.innerHTML = '<span class="ico" data-ico="spinner"></span> Searching...';
+
+    const params = new URLSearchParams();
+    if (kw) params.set('keyword', kw);
+    if (loc) params.set('location', loc);
+    params.set('page', '1');
+    params.set('limit', sdPageSize);
+
+    fetch(API_BASE + '/saved-data/search?' + params.toString())
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                showSdError(data.error + (data.details ? ': ' + data.details : ''));
+                renderSavedResults({results: [], total: 0, page: 1, total_pages: 1});
+            } else {
+                renderSavedResults(data);
+            }
+        })
+        .catch(err => {
+            showSdError('Network error: ' + err.message);
+            renderSavedResults({results: [], total: 0, page: 1, total_pages: 1});
+        })
+        .finally(() => {
+            sdSearchBtn.disabled = false;
+            sdSearchBtn.innerHTML = '<span class="ico" data-ico="search"></span> Search Saved Data';
+        });
+});
+
+        sdExportBtn.addEventListener('click', () => exportCSV(savedResults));
+        sdCopyBtn.addEventListener('click', () => copyJSON(savedResults));
+sdClearBtn.addEventListener('click', () => {
+    // If nothing to clear and already showing demo, just notify
+    if (!sdKeyword.value && !sdLocation.value && savedResults.length === 0) {
+        showToast('Already showing demo data', 'alert');
+        return;
+    }
+    savedResults = [];
+    sdCurrentPage = 1;
+    sdTotalPages = 1;
+    sdTotalCount = 0;
+    sdKeyword.value = '';
+    sdLocation.value = '';
+    hideSdError();
+    document.getElementById('sdPagination').style.display = 'none';
+    renderDemoData();    showToast('Cleared — demo preview restored', 'check-circle');
+});
+
+        /* ─── Saved Data Pagination Listeners ───────── */
+        document.getElementById('sdPrevBtn').addEventListener('click', () => navigateSdPage(-1));
+        document.getElementById('sdNextBtn').addEventListener('click', () => navigateSdPage(1));
+
+
+        /* ─── Theme Toggle ────────────────────────────── */
+
+        const themeToggle = document.getElementById('themeToggle');
+        const STORAGE_KEY = 'zaucto-scraper-theme';
+
+        function getPreferredTheme() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) return stored;
+            // Check system preference
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                return 'light';
+            }
+            return 'dark';
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.remove('light-mode');
+            }
+            localStorage.setItem(STORAGE_KEY, theme);
+        }
+
+        // Apply saved/initial theme on load
+        applyTheme(getPreferredTheme());
+
+        // Listen for system theme changes
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                // Only auto-switch if user hasn't set a preference
+                if (!localStorage.getItem(STORAGE_KEY)) {
+                    applyTheme(e.matches ? 'light' : 'dark');
+                }
+            });
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const isLight = document.documentElement.classList.contains('light-mode');
+            applyTheme(isLight ? 'dark' : 'light');
+            // Show a brief toast
+            showToast(isLight ? 'Dark mode enabled' : 'Light mode enabled', isLight ? 'moon' : 'sun');
+        });
+
+        /* ─── View Toggle (Scrape New / Saved Data) ── */
+
+        const scrapeNewPage = document.getElementById('scrapeNewPage');
+        const savedDataPage = document.getElementById('savedDataPage');
+        const vtToggle = document.getElementById('viewToggle');
+        const vtSlider = document.getElementById('vtSlider');
+        const vtScrapeNew = document.getElementById('vtScrapeNew');
+        const vtSavedData = document.getElementById('vtSavedData');
+
+        function switchView(view) {
+            // Update toggle buttons
+            vtScrapeNew.classList.toggle('active', view === 'scrape-new');
+            vtSavedData.classList.toggle('active', view === 'saved-data');
+
+            // Move slider
+            vtSlider.classList.toggle('saved', view === 'saved-data');
+
+            // Show/hide pages
+            scrapeNewPage.classList.toggle('hidden', view !== 'scrape-new');
+            savedDataPage.classList.toggle('visible', view === 'saved-data');
+
+            // Hide scrape results when on Saved Data page
+            if (view === 'saved-data') {
+                resultsSection.classList.remove('visible');
+            } else {
+                // Restore scrape results visibility if there are results
+                if (lastResults.length > 0) {
+                    resultsSection.classList.add('visible');
+                }
+            }
+        }
+
+        vtScrapeNew.addEventListener('click', () => switchView('scrape-new'));
+        vtSavedData.addEventListener('click', () => switchView('saved-data'));
+    </script>
+
+</body>
+</html>

@@ -3,3 +3,4 @@ __pycache__/
 result.csv
 output.csv
 playwright/.cache/ 
+.env
