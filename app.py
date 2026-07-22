@@ -17,6 +17,15 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 
+# ─── Suppress Flask/Werkzeug startup noise ────────────────
+# Keep only our custom banner, hide Flask defaults
+import werkzeug.serving
+werkzeug.serving._log_add_style = False  # type: ignore[attr-defined]
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
+os.environ['FLASK_RUN_FROM_CLI'] = 'false'
+# Silence the development server warning entirely
+os.environ['FLASK_DEBUG'] = '0'
+
 dotenv_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=dotenv_path)
 
@@ -45,7 +54,8 @@ class ScrapeJob:
     filter_type: str = "all"        # all | none | top_rated | open_now
     mode: str = "fast"              # fast | deep | ultra_deep
     social_media_options: Optional[Dict[str, bool]] = None
-    headless: bool = False
+    headless: bool = True
+    double_check: bool = True
     email: Optional[str] = None
     status: str = "pending"         # pending | running | completed | cancelled | error
     results: List[dict] = field(default_factory=list)
@@ -84,6 +94,7 @@ def run_single_scrape(job: ScrapeJob, search_query: str, per_location_total: int
         social_media_options=job.social_media_options,
         headless=job.headless,
         filter_type=job.filter_type,
+        double_check=job.double_check,
     )
     return places
 
@@ -354,7 +365,8 @@ def start_scrape():
     if email and ("@" not in email or "." not in email):
         email = ""  # invalid email, ignore silently
     social_media_options = data.get("social_media_options", None)
-    headless = data.get("headless", False)
+    headless = data.get("headless", True)  # Default True for safe headless mode
+    double_check = data.get("double_check", True)
 
     if not keyword or not location:
         return jsonify({"error": "Keyword and location are required"}), 400
@@ -386,6 +398,7 @@ def start_scrape():
         mode=mode,
         social_media_options=social_media_options,
         headless=bool(headless),
+        double_check=bool(double_check),
         email=email or None,
         locations=locations,
     )
@@ -555,4 +568,4 @@ if __name__ == "__main__":
     print("  >>  Zaucto Scraper  v2.0")
     print("  >>  http://127.0.0.1:5000")
     print("=" * 55)
-    app.run(debug=True, host="127.0.0.1", port=5000)
+    app.run(debug=False, host="127.0.0.1", port=5000)

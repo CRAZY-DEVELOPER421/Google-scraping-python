@@ -10,6 +10,14 @@ import threading
 import re
 import random
 import requests
+from concurrent.futures import ThreadPoolExecutor
+
+# Optional: playwright-stealth for anti-detection — silently skip if not installed
+try:
+    from playwright_stealth import stealth_sync
+except ImportError:
+    stealth_sync = None
+
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from playwright.sync_api import sync_playwright, Page
@@ -160,14 +168,13 @@ def scrape_website_twice(
     if not website_url:
         return result
 
-    # First visit
-    logging.info(f"🔍 First website visit: {website_url}")
-    visit1 = scrape_website_for_data(website_url, target_platforms, timeout)
-    time.sleep(2)  # Pause between visits
-
-    # Second visit with different timeout/approach
-    logging.info(f"🔍 Second website visit (double-check): {website_url}")
-    visit2 = scrape_website_for_data(website_url, target_platforms, timeout + 5)
+    # First visit & Second visit — run in parallel to cut total time in half
+    logging.info(f"🔍 Visiting website (both passes in parallel): {website_url}")
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future1 = executor.submit(scrape_website_for_data, website_url, target_platforms, timeout)
+        future2 = executor.submit(scrape_website_for_data, website_url, target_platforms, timeout + 5)
+        visit1 = future1.result()
+        visit2 = future2.result()
 
     # Merge both visits — prefer data found in either visit
     merged_count = 0
@@ -207,6 +214,8 @@ def scrape_place_with_retry(
     mode: str,
     target_platforms: Optional[Set[str]],
     max_retries: int = 3,
+    website_cache: Optional[Dict[str, Dict[str, str]]] = None,
+    double_check: bool = True,
 ) -> Optional[Place]:
     """
     Click a listing, extract data, verify it, and retry if critical fields are missing/fake.
@@ -227,13 +236,16 @@ def scrape_place_with_retry(
 
             # Progressive wait: longer on each retry to let data load
             if mode == "ultra_deep":
-                # Ultra Deep: 5-9+ seconds — thorough loading, no rush
-                wait_time = 5.0 + (attempt * 2.0)
+                # Ultra Deep: thorough but not excessive — panel loads reliably in 3.5-6.5s
+                wait_time = 3.5 + (attempt * 1.5)
             elif mode == "deep":
-                # Deep mode: 5-8 seconds for thorough loading
-                wait_time = 5.0 + (attempt * 1.5)
+                # Deep mode: panel loads in 3.5-5.5s with progressive back-off
+                wait_time = 3.5 + (attempt * 1.0)
             else:
-                wait_time = 1.5 + (attempt * 1.2)
+                # Fast mode: find_place_name() already confirms the panel loaded via
+                # wait_for_selector, so we only need a small buffer for remaining
+                # fields (address, phone) to populate — not a full blind wait
+                wait_time = 0.3 + (attempt * 0.3)
 
             name_locator = find_place_name(page, timeout=15000 if mode == "deep" else 10000)
             if name_locator is None:
@@ -252,14 +264,28 @@ def scrape_place_with_retry(
             if mode in ("deep", "ultra_deep"):
                 place = scrape_place_deep_info(page, place)
 
-            # Deep mode: visit website TWICE for Instagram, Facebook, LinkedIn, Email
+            # Deep mode: visit website for Instagram, Facebook, LinkedIn, Email
             if mode == "deep" and place.website:
-                logging.info(f"🌐 Deep mode: Double-checking website for {place.name}")
-                website_data = scrape_website_twice(
-                    place.website,
-                    target_platforms=deep_targets,
-                    timeout=12,
-                )
+                if double_check:
+                    logging.info(f"🌐 Deep mode: Double-checking website for {place.name}")
+                    if website_cache is not None and place.website in website_cache:
+                        website_data = website_cache[place.website]
+                        logging.info(f"♻️ Using cached website data for {place.website} (skip re-visit)")
+                    else:
+                        website_data = scrape_website_twice(
+                            place.website,
+                            target_platforms=deep_targets,
+                            timeout=8,
+                        )
+                        if website_cache is not None:
+                            website_cache[place.website] = website_data
+                else:
+                    logging.info(f"🌐 Deep mode: Single visit (double check OFF) for {place.name}")
+                    website_data = scrape_website_for_data(
+                        place.website,
+                        target_platforms=deep_targets,
+                        timeout=8,
+                    )
                 # Merge website data (only if we found something real)
                 if website_data.get("email") and is_valid_email(website_data["email"]):
                     if not place.email or not is_valid_email(place.email):
@@ -270,14 +296,28 @@ def scrape_place_with_retry(
                         setattr(place, p, website_data[p])
                         logging.info(f"🔗 {p} from website: {website_data[p]}")
 
-            # Ultra Deep: visit website TWICE for complete extraction with thorough double-check
+            # Ultra Deep: visit website for complete extraction
             if mode == "ultra_deep" and place.website:
-                logging.info(f"🌐 Ultra Deep mode: Double-checking website for {place.name}")
-                website_data = scrape_website_twice(
-                    place.website,
-                    target_platforms=target_platforms,
-                    timeout=18,
-                )
+                if double_check:
+                    logging.info(f"🌐 Ultra Deep mode: Double-checking website for {place.name}")
+                    if website_cache is not None and place.website in website_cache:
+                        website_data = website_cache[place.website]
+                        logging.info(f"♻️ Using cached website data for {place.website} (skip re-visit)")
+                    else:
+                        website_data = scrape_website_twice(
+                            place.website,
+                            target_platforms=target_platforms,
+                            timeout=10,
+                        )
+                        if website_cache is not None:
+                            website_cache[place.website] = website_data
+                else:
+                    logging.info(f"🌐 Ultra Deep mode: Single visit (double check OFF) for {place.name}")
+                    website_data = scrape_website_for_data(
+                        place.website,
+                        target_platforms=target_platforms,
+                        timeout=10,
+                    )
                 # Validate email before setting (same as deep mode)
                 if website_data.get("email") and is_valid_email(website_data["email"]):
                     if not place.email or not is_valid_email(place.email):
@@ -311,7 +351,7 @@ def scrape_place_with_retry(
             logging.warning(f"Retry {attempt+1}/{max_retries} failed: {e}")
             if attempt == max_retries - 1:
                 return None
-            time.sleep(1)
+            time.sleep(random.uniform(0.5, 1.5))
 
     return None
 
@@ -461,7 +501,7 @@ def scrape_website_for_data(
                 logging.warning(f"Failed to visit website {website_url} after 3 attempts: {e}")
                 return result
             logging.info(f"Retrying {website_url} (attempt {attempt + 1} failed: {e})")
-            time.sleep(2)  # Wait before retry
+            time.sleep(random.uniform(1.5, 3.5))  # Randomized wait before retry
     
     try:
         html_content = resp.text
@@ -688,7 +728,7 @@ def apply_maps_filter(page: Page, filter_type: str):
 
     try:
         # Wait a moment for the search results to settle before clicking filter
-        page.wait_for_timeout(2000)
+        page.wait_for_timeout(random.randint(1500, 3000))
 
         # Google Maps filter dropdown button — look for the chip/button that shows "All"
         # It's typically a button with aria-label containing "All" and role="button"
@@ -706,7 +746,7 @@ def apply_maps_filter(page: Page, filter_type: str):
 
         dropdown_button.click()
         logging.info(f"Clicked filter dropdown, searching for option: {target_text}")
-        page.wait_for_timeout(1000)
+        page.wait_for_timeout(random.randint(800, 1500))
 
         # Find and click the desired option in the dropdown
         option = page.get_by_text(target_text, exact=True).first
@@ -717,7 +757,7 @@ def apply_maps_filter(page: Page, filter_type: str):
 
         if option.count() > 0:
             option.click()
-            page.wait_for_timeout(2000)  # Wait for filter to take effect
+            page.wait_for_timeout(random.randint(1500, 3000))  # Wait for filter to take effect
             logging.info(f"✅ Applied Maps filter: '{target_text}' (filter_type={filter_type})")
         else:
             logging.warning(f"Could not find filter option '{target_text}' in dropdown")
@@ -756,7 +796,7 @@ def find_listing_elements(page: Page, min_count: int = 1, timeout: int = 30000):
     
     # Last resort: wait and try the feed container
     try:
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(random.randint(2000, 4000))
         # Look for anchor elements inside the feed role
         feed_links = page.locator('//div[@role="feed"]//a[contains(@href, "http")]').all()
         if len(feed_links) > 0:
@@ -797,7 +837,7 @@ def find_place_name(page: Page, timeout: int = 10000):
     for selector in fallback_selectors:
         try:
             locator = page.locator(selector)
-            if locator.count() > 0 and locator.is_visible(timeout=3000):
+            if locator.count() > 0 and locator.is_visible(timeout=800):
                 logging.info(f"Found place name with fallback selector: {selector}")
                 return locator
         except Exception:
@@ -812,8 +852,9 @@ def scrape_places(
     progress_callback: Optional[Callable[[int], None]] = None,
     mode: str = "fast",
     social_media_options: Optional[Dict[str, bool]] = None,
-    headless: bool = False,
+    headless: bool = True,
     filter_type: str = "all",
+    double_check: bool = True,
 ) -> List[Place]:
     """
     Scrape Google Maps for places matching the search query.
@@ -851,9 +892,24 @@ def scrape_places(
         else:
             browser = p.chromium.launch(headless=headless)
         page = browser.new_page()
+        if stealth_sync:
+            stealth_sync(page)
+            logging.info("✅ playwright-stealth active — anti-detection enabled")
+        else:
+            logging.info("⚠ playwright-stealth not installed — skipping anti-detection")
+        # Block resource-heavy requests (images, CSS, fonts) to speed up page load + reduce fingerprinting
+        page.route("**/*.{png,jpg,jpeg,svg,gif,webp,woff,woff2,ttf,eot,otf}", lambda route: route.abort())
+        # Randomize viewport to avoid browser fingerprinting detection
+        viewport_options = [
+            {"width": 1920, "height": 1080},
+            {"width": 1366, "height": 768},
+            {"width": 1536, "height": 864},
+            {"width": 1440, "height": 900},
+        ]
+        page.set_viewport_size(random.choice(viewport_options))
         try:
             page.goto("https://www.google.com/maps/@32.9817464,70.1930781,3.67z?", timeout=60000)
-            page.wait_for_timeout(1000)
+            page.wait_for_timeout(random.randint(800, 1500))
             # Try multiple selectors for the Google Maps search input (Google frequently changes their HTML)
             search_input = None
             search_selectors = [
@@ -875,7 +931,7 @@ def scrape_places(
             if search_input is None or search_input.count() == 0:
                 # Last resort: wait briefly for page to settle, then look for any visible
                 # input inside the search/content area of Google Maps
-                page.wait_for_timeout(2000)
+                page.wait_for_timeout(random.randint(1500, 3000))
                 search_input = page.locator(
                     "//div[@role='search']//input | //input[contains(@aria-label, 'Search')]"
                 ).first
@@ -902,7 +958,7 @@ def scrape_places(
                 # Scroll the Google Maps results feed panel (not the page)
                 page.evaluate('''const feed = document.querySelector("[role='feed']");
                 if (feed) { feed.scrollBy(0, 12000); } else { window.scrollBy(0, 12000); }''')
-                page.wait_for_timeout(1500)
+                page.wait_for_timeout(700)
                 
                 # Re-fetch listings after scroll to check count (shorter timeout — listings already loaded)
                 current_listings = find_listing_elements(page, min_count=1, timeout=5000)
@@ -929,6 +985,9 @@ def scrape_places(
             if mode == "ultra_deep" and social_media_options:
                 target_platforms = {p for p, enabled in social_media_options.items() if enabled}
             
+            # Cache for website scrape results — avoids re-visiting same URL on retry
+            website_cache: Dict[str, Dict[str, str]] = {}
+
             for idx, listing in enumerate(listings):
                 if abort_event and abort_event.is_set():
                     logging.info("Scrape cancelled by user")
@@ -942,6 +1001,8 @@ def scrape_places(
                     mode=mode,
                     target_platforms=target_platforms,
                     max_retries=3 if mode == "ultra_deep" else 2,
+                    double_check=double_check,
+                    website_cache=website_cache,
                 )
 
                 if place and place.name:
