@@ -152,9 +152,6 @@
         /* ─── Theme Toggle ──────────────────────────── */
 
         .theme-toggle {
-            position: absolute;
-            top: 16px;
-            right: 16px;
             width: var(--toggle-size, 36px);
             height: var(--toggle-size, 36px);
             border-radius: 50%;
@@ -168,7 +165,7 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-family: inherit;
             outline: none;
-            z-index: 5;
+            flex-shrink: 0;
         }
 
         .theme-toggle:hover {
@@ -1873,12 +1870,23 @@
     <div class="container">
         <!-- Main Card -->
         <div class="card">
-            <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle theme">
-                <!-- Moon icon (dark mode) -->
-                <span class="ico moon-icon" data-ico="moon"></span>
-                <!-- Sun icon (light mode) -->
-                        <span class="ico sun-icon" data-ico="sun"></span>
-            </button>
+            <div style="position: absolute; top: 16px; right: 16px; display: flex; align-items: center; gap: 10px; z-index: 5;">
+                <!-- Double Check toggle (hidden by default, shown in Deep/Ultra Deep mode) -->
+                <div id="headerDoubleCheck" style="display: none; align-items: center; gap: 8px; margin-right: 70px;">
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">DOUBLE CHECK</span>
+                    <label class="toggle-switch" id="doubleCheckLabel" style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 10px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; user-select: none; transition: border-color 0.3s, background 0.3s;">
+                        <input type="checkbox" id="doubleCheckToggle" style="display: none;" />
+                        <span class="toggle-slider" id="dcSlider" style="position: relative; width: 32px; height: 18px; background: var(--border-color); border-radius: 9px; transition: background 0.3s; flex-shrink: 0;">
+                            <span id="dcKnob" style="position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: transform 0.3s;"></span>
+                        </span>
+                        <span class="toggle-state" id="dcState" style="font-size: 10px; font-weight: 600; color: var(--text-muted); min-width: 22px; transition: color 0.3s;">OFF</span>
+                    </label>
+                </div>
+                <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle theme">
+                    <span class="ico moon-icon" data-ico="moon"></span>
+                    <span class="ico sun-icon" data-ico="sun"></span>
+                </button>
+            </div>
 
             <!-- View Toggle -->
             <div class="view-toggle-container">
@@ -1922,23 +1930,11 @@
                     </div>
                 </div>
 
-                <!-- Email (optional) + Double Check Toggle (side by side) -->
-                <div class="form-row" style="grid-template-columns: 1fr auto; margin-bottom: 16px;">
-                    <div class="form-group">
-                        <label for="emailInput">EMAIL (optional)</label>
-                        <input type="email" id="emailInput" placeholder="your@email.com" />
-                        <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Enter your email to receive the CSV file once scraping completes &mdash; you can close this window.</span>
-                    </div>
-                    <div class="form-group" id="doubleCheckGroup" style="display:none; align-self: flex-end; margin-bottom: 0;">
-                        <label style="white-space: nowrap;">DOUBLE CHECK</label>
-                        <label class="toggle-switch" id="doubleCheckLabel" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm); user-select: none; transition: border-color 0.3s, background 0.3s;">
-                            <input type="checkbox" id="doubleCheckToggle" style="display: none;" />
-                            <span class="toggle-slider" id="dcSlider" style="position: relative; width: 44px; height: 24px; background: var(--border-color); border-radius: 12px; transition: background 0.3s; flex-shrink: 0;">
-                                <span id="dcKnob" style="position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: transform 0.3s;"></span>
-                            </span>
-                            <span class="toggle-state" id="dcState" style="font-size: 12px; font-weight: 600; color: var(--text-muted); min-width: 28px; transition: color 0.3s;">OFF</span>
-                        </label>
-                    </div>
+                <!-- Email field -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="emailInput">EMAIL</label>
+                    <input type="email" id="emailInput" placeholder="your@email.com" />
+                    <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Enter your email to receive the CSV file once scraping completes &mdash; you can close this window.</span>
                 </div>
 
                 <!-- Mode Selector -->
@@ -2380,16 +2376,7 @@
             modeBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
             socialOptions.classList.toggle('visible', mode === 'ultra_deep');
             // Show Double Check toggle only in Deep / Ultra Deep mode
-            const dcGroup = document.getElementById('doubleCheckGroup');
-            if (dcGroup) {
-                dcGroup.style.display = (mode === 'deep' || mode === 'ultra_deep') ? 'flex' : 'none';
-                // Reset toggle to OFF when switching modes
-                const dcToggle = document.getElementById('doubleCheckToggle');
-                if (dcToggle && dcToggle.checked) {
-                    dcToggle.checked = false;
-                    updateDoubleCheckUI(false);
-                }
-            }
+            updateDoubleCheckState(mode);
             updateFieldsPreview();
         }
 
@@ -2421,18 +2408,46 @@
             }
         }
 
+        function updateDoubleCheckState(mode) {
+            const container = document.getElementById('headerDoubleCheck');
+            const toggle = document.getElementById('doubleCheckToggle');
+            const isDeepOrUltra = (mode === 'deep' || mode === 'ultra_deep');
+
+            // Show/hide the Double Check toggle only in Deep/Ultra Deep mode
+            if (container) {
+                container.style.display = isDeepOrUltra ? 'flex' : 'none';
+            }
+
+            if (!toggle) return;
+            toggle.disabled = !isDeepOrUltra;
+
+            // Force OFF when switching to Fast mode (toggle has no meaning there)
+            if (!isDeepOrUltra && toggle.checked) {
+                toggle.checked = false;
+                updateDoubleCheckUI(false);
+            }
+            // Update visual disabled state
+            const label = document.getElementById('doubleCheckLabel');
+            if (label) {
+                label.style.opacity = isDeepOrUltra ? '1' : '0.5';
+                label.style.cursor = isDeepOrUltra ? 'pointer' : 'not-allowed';
+            }
+        }
+
         const dcToggle = document.getElementById('doubleCheckToggle');
         if (dcToggle) {
             dcToggle.addEventListener('change', function() {
+                if (this.disabled) return; // safety check — disabled inputs shouldn't trigger change, but just in case
                 if (this.checked) {
                     // Warning popup only when enabling
-                    alert("Double Check ON: Har business ki website DO BAAR visit ki jayegi — ye zyada accurate hai lekin time roughly double ho jayega.");
+                    alert("Double Check ON: Each business's website will be visited TWICE — this is more accurate but will roughly double the time.");
                 }
                 updateDoubleCheckUI(this.checked);
             });
-            // Initialize OFF state
+            // Initialize: default Fast mode → disabled OFF
             updateDoubleCheckUI(false);
             dcToggle.checked = false;
+            updateDoubleCheckState('fast');
         }
 
         // Initialize fields preview for default mode (Fast Scrape)

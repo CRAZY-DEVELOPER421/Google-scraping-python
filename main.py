@@ -600,8 +600,6 @@ def extract_place(page: Page) -> Place:
     address_xpath = '//button[@data-item-id="address"]//div[contains(@class, "fontBodyMedium")]'
     website_xpath = '//a[@data-item-id="authority"]//div[contains(@class, "fontBodyMedium")]'
     phone_number_xpath = '//button[contains(@data-item-id, "phone:tel:")]//div[contains(@class, "fontBodyMedium")]'
-    reviews_count_xpath = '//div[@class="TIHn2 "]//div[@class="fontBodyMedium dmRWX"]//div//span//span//span[@aria-label]'
-    reviews_average_xpath = '//div[@class="TIHn2 "]//div[@class="fontBodyMedium dmRWX"]//div//span[@aria-hidden]'
     info1 = '//div[@class="LTs0Rc"][1]'
     info2 = '//div[@class="LTs0Rc"][2]'
     info3 = '//div[@class="LTs0Rc"][3]'
@@ -609,6 +607,23 @@ def extract_place(page: Page) -> Place:
     opens_at_xpath2 = '//div[@class="MkV9"]//span[@class="ZDu9vd"]//span[2]'
     place_type_xpath = '//div[@class="LBgpqf"]//button[@class="DkEaL "]'
     intro_xpath = '//div[@class="WeS02d fontBodyMedium"]//div[@class="PYvSYb "]'
+
+    # ─── Reviews Count & Average — multiple fallback selectors ───
+    reviews_count_selectors = [
+        '//div[@class="TIHn2 "]//div[@class="fontBodyMedium dmRWX"]//div//span//span//span[@aria-label]',
+        '//div[@class="TIHn2 "]//span[@aria-label and contains(@aria-label, "review")]',
+        '//span[@aria-label and contains(@aria-label, "review")]',
+        '//button[@aria-label and contains(@aria-label, "reviews")]//span',
+        '//div[contains(@class, "fontBodyMedium")]//span[contains(@aria-label, "review")]',
+        '//div[contains(@class, "fontBodyMedium")]//span[@aria-label]',
+    ]
+    reviews_avg_selectors = [
+        '//div[@class="TIHn2 "]//div[@class="fontBodyMedium dmRWX"]//div//span[@aria-hidden]',
+        '//div[@class="TIHn2 "]//span[@aria-hidden and contains(text(), ".")]',
+        '//span[@aria-hidden and contains(., ".")]',
+        '//div[contains(@class, "fontBodyMedium")]//span[@aria-hidden]',
+        '//div[@role="main"]//span[@aria-hidden]',
+    ]
 
     place = Place()
     # Extract name with fallback selectors (matching find_place_name logic)
@@ -633,22 +648,85 @@ def extract_place(page: Page) -> Place:
     place.place_type = extract_text(page, place_type_xpath)
     place.introduction = extract_text(page, intro_xpath) or "None Found"
 
-    # Reviews Count
-    reviews_count_raw = extract_text(page, reviews_count_xpath)
+    # Reviews Count — try multiple fallback selectors
+    reviews_count_raw = ""
+    for sel in reviews_count_selectors:
+        raw = extract_text(page, sel)
+        if raw:
+            reviews_count_raw = raw
+            logging.info(f"✅ Reviews count found via: {sel} => {raw}")
+            break
     if reviews_count_raw:
         try:
             temp = reviews_count_raw.replace('\xa0', '').replace('(','').replace(')','').replace(',','')
-            place.reviews_count = int(temp)
+            # Extract just digits from the string
+            digits = re.sub(r'\D', '', temp)
+            if digits:
+                place.reviews_count = int(digits)
+                logging.info(f"📊 Parsed reviews count: {place.reviews_count}")
         except Exception as e:
-            logging.warning(f"Failed to parse reviews count: {e}")
-    # Reviews Average
-    reviews_avg_raw = extract_text(page, reviews_average_xpath)
+            logging.warning(f"Failed to parse reviews count from '{reviews_count_raw}': {e}")
+    else:
+        # Last resort: scrape entire page body for review count pattern
+        try:
+            body_text = page.inner_text('body')
+            # Look for patterns like "123 reviews"
+            review_patterns = [
+                r'(\d[\d,]*) reviews?',
+                r'(\d[\d,]+)\s*reviews?',
+            ]
+            for pat in review_patterns:
+                match = re.search(pat, body_text, re.IGNORECASE)
+                if match:
+                    num_str = match.group(1).replace(',', '')
+                    try:
+                        place.reviews_count = int(num_str)
+                        logging.info(f"📊 Reviews count from body text: {place.reviews_count}")
+                        break
+                    except ValueError:
+                        pass
+        except Exception as e:
+            logging.warning(f"Failed to extract reviews count from body: {e}")
+
+    # Reviews Average — try multiple fallback selectors
+    reviews_avg_raw = ""
+    for sel in reviews_avg_selectors:
+        raw = extract_text(page, sel)
+        if raw:
+            reviews_avg_raw = raw
+            logging.info(f"✅ Reviews average found via: {sel} => {raw}")
+            break
     if reviews_avg_raw:
         try:
             temp = reviews_avg_raw.replace(' ','').replace(',','.')
-            place.reviews_average = float(temp)
+            # Extract first float-like number from the string
+            float_match = re.search(r'(\d+\.?\d*)', temp)
+            if float_match:
+                place.reviews_average = float(float_match.group(1))
+                logging.info(f"⭐ Parsed reviews average: {place.reviews_average}")
         except Exception as e:
-            logging.warning(f"Failed to parse reviews average: {e}")
+            logging.warning(f"Failed to parse reviews average from '{reviews_avg_raw}': {e}")
+    else:
+        # Last resort: scrape entire page body for rating pattern
+        try:
+            body_text = page.inner_text('body')
+            # Look for patterns like "4.5" near "star" or "rating"
+            avg_patterns = [
+                r'(\d\.\d)\s*star',
+                r'(\d\.\d)\s*rating',
+            ]
+            for pat in avg_patterns:
+                match = re.search(pat, body_text, re.IGNORECASE)
+                if match:
+                    try:
+                        place.reviews_average = float(match.group(1))
+                        logging.info(f"⭐ Reviews average from body text: {place.reviews_average}")
+                        break
+                    except ValueError:
+                        pass
+        except Exception as e:
+            logging.warning(f"Failed to extract reviews average from body: {e}")
+
     # Store Info
     for idx, info_xpath in enumerate([info1, info2, info3]):
         info_raw = extract_text(page, info_xpath)

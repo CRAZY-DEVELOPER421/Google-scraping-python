@@ -23,8 +23,6 @@ import werkzeug.serving
 werkzeug.serving._log_add_style = False  # type: ignore[attr-defined]
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 os.environ['FLASK_RUN_FROM_CLI'] = 'false'
-# Silence the development server warning entirely
-os.environ['FLASK_DEBUG'] = '0'
 
 dotenv_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=dotenv_path)
@@ -34,6 +32,7 @@ from main import scrape_places, Place, save_places_to_csv, setup_logging
 from database.saved_data_service import search_saved_places
 
 app = Flask(__name__)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 CORS(app, resources={r"/scrape*": {"origins": "*"}})
 
 setup_logging()
@@ -568,4 +567,4 @@ if __name__ == "__main__":
     print("  >>  Zaucto Scraper  v2.0")
     print("  >>  http://127.0.0.1:5000")
     print("=" * 55)
-    app.run(debug=False, host="127.0.0.1", port=5000)
+    app.run(debug=True, host="127.0.0.1", port=5000)

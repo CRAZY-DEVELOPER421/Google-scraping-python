@@ -1,1 +1,64 @@
-Access is denied.
+=======================================================
+  >>  Zaucto Scraper  v2.0
+  >>  http://127.0.0.1:5000
+=======================================================
+ * Serving Flask app 'app'
+ * Debug mode: on
+2026-07-22 13:28:54,277 - INFO - \u26a0 playwright-stealth not installed — skipping anti-detection
+2026-07-22 13:28:58,159 - INFO - Found search input with selector: //input[@name='q']
+2026-07-22 13:29:05,282 - INFO - \u2705 Found 6 listings with selector: //a[contains(@href, "https://www.google.com/maps/place")]
+2026-07-22 13:29:05,842 - INFO - Filter: 'all' — skipping filter click (already default)
+2026-07-22 13:29:06,630 - INFO - \u2705 Found 12 listings with selector: //a[contains(@href, "https://www.google.com/maps/place")]
+2026-07-22 13:29:06,652 - INFO - Currently Found: 12
+2026-07-22 13:29:06,725 - INFO - \u2705 Found 12 listings with selector: //a[contains(@href, "https://www.google.com/maps/place")]
+2026-07-22 13:29:06,761 - INFO - Total Found: 2
+2026-07-22 13:29:08,797 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:29:08,797 - INFO - \u23f3 Deep mode wait: 0.3s for listing 1 (attempt 1/2)
+2026-07-22 13:29:09,559 - INFO - \u21bb Retry 2/2 for 'Bombay Island Coffee Company | Vikhroli': phone=OK, email=FAKE
+2026-07-22 13:29:09,858 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:29:09,858 - INFO - \u23f3 Deep mode wait: 0.6s for listing 1 (attempt 2/2)
+2026-07-22 13:29:10,969 - INFO - \u2192 Final attempt for Bombay Island Coffee Company | Vikhroli: phone=\u2705, email=\u274c
+2026-07-22 13:29:11,243 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:29:11,243 - INFO - \u23f3 Deep mode wait: 0.3s for listing 2 (attempt 1/2)
+2026-07-22 13:29:12,118 - INFO - \u21bb Retry 2/2 for 'Bombay Island Coffee Company | Vikhroli': phone=OK, email=FAKE
+2026-07-22 13:29:12,376 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:29:12,376 - INFO - \u23f3 Deep mode wait: 0.6s for listing 2 (attempt 2/2)
+2026-07-22 13:29:13,414 - INFO - \u2192 Final attempt for Float_in_Cafe: phone=\u274c, email=\u274c
+2026-07-22 13:31:44,259 - INFO - \u26a0 playwright-stealth not installed — skipping anti-detection
+2026-07-22 13:31:47,802 - INFO - Found search input with selector: //input[@name='q']
+2026-07-22 13:31:53,895 - INFO - \u2705 Found 6 listings with selector: //a[contains(@href, "https://www.google.com/maps/place")]
+2026-07-22 13:31:56,916 - WARNING - Could not find filter dropdown button on Maps page
+2026-07-22 13:31:57,676 - INFO - \u2705 Found 12 listings with selector: //a[contains(@href, "https://www.google.com/maps/place")]
+2026-07-22 13:31:57,686 - INFO - Currently Found: 12
+2026-07-22 13:31:57,716 - INFO - \u2705 Found 12 listings with selector: //a[contains(@href, "https://www.google.com/maps/place")]
+2026-07-22 13:31:57,725 - INFO - Total Found: 5
+2026-07-22 13:32:00,042 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:32:00,043 - INFO - \u23f3 Deep mode wait: 0.3s for listing 1 (attempt 1/2)
+2026-07-22 13:32:00,632 - INFO - \u21bb Retry 2/2 for 'Prithvi Cafe': phone=OK, email=FAKE
+2026-07-22 13:32:00,884 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:32:00,884 - INFO - \u23f3 Deep mode wait: 0.6s for listing 1 (attempt 2/2)
+2026-07-22 13:32:01,859 - INFO - \u2192 Final attempt for Prithvi Cafe: phone=\u2705, email=\u274c
+2026-07-22 13:32:02,142 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:32:02,142 - INFO - \u23f3 Deep mode wait: 0.3s for listing 2 (attempt 1/2)
+2026-07-22 13:32:02,930 - INFO - \u21bb Retry 2/2 for 'Le Cafe | Best European Cafe in Chembur, Mumbai': phone=OK, email=FAKE
+2026-07-22 13:32:03,225 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:32:03,226 - INFO - \u23f3 Deep mode wait: 0.6s for listing 2 (attempt 2/2)
+2026-07-22 13:32:04,007 - INFO - \u2192 Final attempt for Le Cafe | Best European Cafe in Chembur, Mumbai: phone=\u2705, email=\u274c
+2026-07-22 13:32:04,228 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:32:04,228 - INFO - \u23f3 Deep mode wait: 0.3s for listing 3 (attempt 1/2)
+2026-07-22 13:32:05,022 - INFO - \u21bb Retry 2/2 for 'Bombay To Barcelona Library Cafe': phone=OK, email=FAKE
+2026-07-22 13:32:05,311 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:32:05,312 - INFO - \u23f3 Deep mode wait: 0.6s for listing 3 (attempt 2/2)
+2026-07-22 13:32:06,312 - INFO - \u2192 Final attempt for Bombay To Barcelona Library Cafe: phone=\u2705, email=\u274c
+2026-07-22 13:32:06,549 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:32:06,549 - INFO - \u23f3 Deep mode wait: 0.3s for listing 4 (attempt 1/2)
+2026-07-22 13:32:07,008 - INFO - \u21bb Retry 2/2 for 'Bombay To Barcelona Library Cafe': phone=OK, email=FAKE
+2026-07-22 13:32:07,197 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:32:07,197 - INFO - \u23f3 Deep mode wait: 0.6s for listing 4 (attempt 2/2)
+2026-07-22 13:32:08,252 - INFO - \u2192 Final attempt for Bombay To Barcelona Library Cafe: phone=\u2705, email=\u274c
+2026-07-22 13:32:08,449 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:32:08,449 - INFO - \u23f3 Deep mode wait: 0.3s for listing 5 (attempt 1/2)
+2026-07-22 13:32:08,964 - INFO - \u21bb Retry 2/2 for 'Cococart & Cafe (Mumbai T2)': phone=OK, email=FAKE
+2026-07-22 13:32:09,137 - INFO - Found place name via primary wait: //div[@class="TIHn2 "]//h1[@class="DUwDvf lfPIob"]
+2026-07-22 13:32:09,137 - INFO - \u23f3 Deep mode wait: 0.6s for listing 5 (attempt 2/2)
+2026-07-22 13:32:10,080 - INFO - \u2192 Final attempt for Cococart & Cafe (Mumbai T2): phone=\u2705, email=\u274c
