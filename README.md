@@ -19,6 +19,8 @@ To do a custom web scraping project you can find me on Upwork or on Linkedin<br>
 ## Table of Contents
 - [Prerequisites](#prerequisites)
 - [Multiple Branches](#multiple-branches)
+- [Project Structure](#project-structure)
+- [AI Search Feature](#ai-search-feature)
 - [Key Features](#key-features)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -37,16 +39,55 @@ The repo currently has 3 branches
 - Linux ( Linux Support if main branch does not work correctly)
 
 
+## Project Structure
+
+The project has been cleaned up to keep only essential files. Below is the current file tree:
+
+```
+📁 Google-Maps-Scrapper/
+├── app.py                 ← Flask web server (UI + API)
+├── main.py                ← Google Maps scraper engine (Playwright)
+├── ai/                    ← AI Search package (runs alongside scraper)
+│   ├── __init__.py
+│   ├── routes.py          ← /api/ai-search/* endpoints
+│   ├── service.py         ← AI pipeline: web search → DeepSeek → enrichment
+│   ├── deepseek_client.py ← DeepSeek / Zaucto AI API client
+│   ├── web_search_client.py ← Serper.dev web search client
+│   └── usage_tracker.py   ← Monthly API usage tracking
+├── database/              ← Saved data
+│   ├── __init__.py
+│   ├── db_connection.py
+│   └── saved_data_service.py
+├── static/                ← Frontend assets
+│   ├── ai-panel.css
+│   └── ai-panel.js
+├── templates/
+│   └── index.html         ← Main UI (dark/light theme, scraper + AI panel)
+├── .env                   ← API keys (not committed)
+├── .gitignore             ← Excludes logs, .venv, outputs, debug files
+├── requirements.txt
+└── README.md
+```
+
+### Cleanup Notes
+
+- **13 unused files removed**: debug scripts (`debug_reviews.py`, `diagnose_ai_search.py`, `test_*.py`, `trace_pipeline.py`), old outputs (`result.csv`, `debug_output.json`, `ai/usage_data.json`), and the `public/` directory
+- **Logs excluded**: `*.log` pattern added to `.gitignore` — previously tracked logs (`flask_output.log`) also untracked
+- **Test artifacts excluded**: `debug_*.py`, `test_*.py`, `diagnose_*.py`, `trace_*.py` all ignored by git
+- **.venv recreated**: Fresh virtual environment from `requirements.txt` to avoid cruft
+
 ## AI Search Feature
 
 This project includes an **AI-powered business search** feature that runs alongside the Google Maps scraper.
 It uses **Zaucto AI** (powered by DeepSeek) to fetch business data directly via AI — no browser needed.
 
-- **Backend AI code**: `ai/` folder (blueprint, client, service)
+- **Backend AI code**: `ai/` folder (routes, service, clients, tracker)
 - **Frontend panel**: `static/ai-panel.js` (dynamic panel injection) + `static/ai-panel.css` (light theme styling)
 - **Toggle**: Enable "AI SEARCH" in the header to run AI search in parallel with scraping
 - **No separate input**: AI search reads keyword, location, results count, and filter from the main form
 - **Mode matching**: AI returns the same fields as the selected scraping mode (Fast/Deep/Ultra Deep)
+- **Duplicate results**: Deduplication applied on both scraper and AI search results
+- **Non-business queries**: Promptly refused with a Hindi/English message
 - **Never fabricates**: System prompt explicitly tells Zaucto AI to return empty strings for unknown fields
 
 ## Key Features
@@ -113,8 +154,3 @@ https://www.linkedin.com/posts/zohaibbashir_python-data-webscraping-activity-709
 
 ## License
 MIT
-# Google-scraping-python
-
-# Google-scraping-python
-
-# Google-scraping-python
