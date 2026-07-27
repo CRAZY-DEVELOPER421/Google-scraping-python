@@ -23,8 +23,6 @@ import werkzeug.serving
 werkzeug.serving._log_add_style = False  # type: ignore[attr-defined]
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 os.environ['FLASK_RUN_FROM_CLI'] = 'false'
-# Silence the development server warning entirely
-os.environ['FLASK_DEBUG'] = '0'
 
 dotenv_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=dotenv_path)
@@ -32,15 +30,18 @@ load_dotenv(dotenv_path=dotenv_path)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from main import scrape_places, Place, save_places_to_csv, setup_logging
 from database.saved_data_service import search_saved_places
+from ai.routes import ai_bp
 
 app = Flask(__name__)
+app.register_blueprint(ai_bp)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 CORS(app, resources={r"/scrape*": {"origins": "*"}})
 
 setup_logging()
 
 # ─── Configuration ─────────────────────────────────────────
 
-MAX_TOTAL = 200
+MAX_TOTAL = 30
 JOB_CLEANUP_AGE_MINUTES = 60
 JOB_CLEANUP_INTERVAL_SECONDS = 300  # Run cleanup every 5 minutes
 
@@ -54,11 +55,12 @@ class ScrapeJob:
     filter_type: str = "all"        # all | none | top_rated | open_now
     mode: str = "fast"              # fast | deep | ultra_deep
     social_media_options: Optional[Dict[str, bool]] = None
-    headless: bool = True
+    headless: bool = False
     double_check: bool = True
     email: Optional[str] = None
     status: str = "pending"         # pending | running | completed | cancelled | error
     results: List[dict] = field(default_factory=list)
+    ai_results: Optional[List[dict]] = None  # AI Search results (for email attachment)
     scraped_so_far: int = 0
     error: Optional[str] = None
     abort_event: threading.Event = field(default_factory=threading.Event)
@@ -73,6 +75,22 @@ class ScrapeJob:
 # In-memory job store
 jobs: dict[str, ScrapeJob] = {}
 jobs_lock = threading.Lock()
+
+
+def _build_scrape_query(keyword: str, location: str, total: int, filter_type: str = "all") -> str:
+    """
+    Build a search query for the main Google Maps scraper with quantity and filter.
+
+    - "all" or "none": "{total} {keyword} in {location}"
+    - "top_rated": "{total} top rated {keyword} in {location}"
+    - "open_now": "{total} new {keyword} in {location}"
+    """
+    if filter_type == "top_rated":
+        return f"{total} top rated {keyword} in {location}"
+    elif filter_type == "open_now":
+        return f"{total} new {keyword} in {location}"
+    else:  # "all" or "none"
+        return f"{total} {keyword} in {location}"
 
 
 def update_job_progress(job: ScrapeJob, count: int):
@@ -151,8 +169,8 @@ def scrape_worker(job: ScrapeJob):
                 if not loc:
                     continue
 
-                search_query = f"{job.keyword} in {loc}"
                 target_for_this = location_totals[idx]
+                search_query = _build_scrape_query(job.keyword, loc, target_for_this, job.filter_type)
                 logging.info(f"📍 Multi-scrape: scraping location {idx+1}/{total_locations}: '{loc}' (target: {target_for_this})")
 
                 try:
@@ -186,9 +204,10 @@ def scrape_worker(job: ScrapeJob):
             all_places = deduplicate_places(all_places)
 
         else:
-            # ─── Single-location scraping (original behavior) ───
-            search_query = f"{job.keyword} in {job.location}"
+            # ─── Single-location scraping ───
+            search_query = _build_scrape_query(job.keyword, job.location, job.total, job.filter_type)
             all_places = run_single_scrape(job, search_query)
+            all_places = deduplicate_places(all_places)
 
         results = [asdict(place) for place in all_places]
 
@@ -200,22 +219,39 @@ def scrape_worker(job: ScrapeJob):
                 job.status = "completed"
                 job.results = results
                 job.scraped_so_far = len(results)
-
-                # Send email if user provided one
-                if job.email and results:
-                    location_label = job.location if total_locations <= 1 else f"{total_locations} locations"
-                    try:
-                        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
-                            temp_csv_path = tmp.name
-                        places_objs = [Place(**p) for p in results]
-                        mode_columns = get_columns_for_mode(job.mode, job.social_media_options)
-                        save_places_to_csv(places_objs, temp_csv_path, columns=mode_columns)
-                        send_results_email(job.email, temp_csv_path, job.keyword, location_label, len(results))
-                    except Exception as e:
-                        logging.warning(f"Email sending failed: {e}")
-                    finally:
-                        if os.path.exists(temp_csv_path):
-                            os.remove(temp_csv_path)
+        
+        # ─── Email sending (OUTSIDE the lock — avoids deadlock) ───
+        if job.email and results and job.status == "completed":
+            location_label = job.location if total_locations <= 1 else f"{total_locations} locations"
+            try:
+                with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
+                    temp_csv_path = tmp.name
+                places_objs = [Place(**p) for p in results]
+                mode_columns = get_columns_for_mode(job.mode, job.social_media_options)
+                save_places_to_csv(places_objs, temp_csv_path, columns=mode_columns)
+                
+                # Wait for AI search results (up to 45s) for email — NO lock held
+                ai_results = None
+                for _ in range(45):
+                    # Read ai_results without holding the lock (safe: only set once by /ai-results endpoint)
+                    if job.ai_results is not None:
+                        ai_results = job.ai_results
+                        break
+                    if job.abort_event.is_set():
+                        break
+                    threading.Event().wait(1.0)
+                
+                if ai_results:
+                    logging.info(f"📧 Including {len(ai_results)} AI Search results in email")
+                else:
+                    logging.info(f"📧 AI results not available within timeout — sending scraper-only email")
+                
+                send_results_email(job.email, temp_csv_path, job.keyword, location_label, len(results), ai_results)
+            except Exception as e:
+                logging.warning(f"Email sending failed: {e}")
+            finally:
+                if os.path.exists(temp_csv_path):
+                    os.remove(temp_csv_path)
 
     except Exception as e:
         logging.exception("Scraping failed")
@@ -224,9 +260,10 @@ def scrape_worker(job: ScrapeJob):
             job.error = str(e)
 
 
-def send_results_email(to_email: str, csv_path: str, keyword: str, location: str, total_results: int) -> bool:
+def send_results_email(to_email: str, csv_path: str, keyword: str, location: str, total_results: int, ai_results: Optional[List[dict]] = None) -> bool:
     """
     Send an email with the CSV results attached using Gmail SMTP.
+    If AI search results are provided, they are attached as a second CSV file.
     Returns True if sent successfully, False otherwise.
     """
     smtp_email = os.environ.get("SMTP_EMAIL")
@@ -242,16 +279,24 @@ def send_results_email(to_email: str, csv_path: str, keyword: str, location: str
         msg["To"] = to_email
         msg["Subject"] = f"Your Zaucto Scraper results are ready! ({total_results} places found)"
 
+        ai_count = len(ai_results) if ai_results else 0
+        ai_line = f"\nPlus {ai_count} businesses found by AI Search." if ai_count else ""
         body = f"""Hi,
 
 Your scraping job for "{keyword}" in "{location}" is complete!
 
-We found {total_results} places. The full results are attached as a CSV file.
+We found {total_results} places from Google Maps.{ai_line}
 
+Scraper results are attached as 'zaucto_results.csv'.
+"""
+        if ai_count:
+            body += "AI Search results are attached as 'zaucto_ai_results.csv'.\n"
+        body += """
 Thanks for using Zaucto Scraper.
 """
         msg.attach(MIMEText(body, "plain"))
 
+        # Attach scraper results CSV
         with open(csv_path, "rb") as f:
             part = MIMEBase("application", "octet-stream")
             part.set_payload(f.read())
@@ -259,18 +304,58 @@ Thanks for using Zaucto Scraper.
         part.add_header("Content-Disposition", f"attachment; filename=zaucto_results.csv")
         msg.attach(part)
 
+        # Attach AI results CSV (if available)
+        if ai_results:
+            ai_csv_lines = []
+            ai_csv_lines.append("Name,Address,Email,Phone Number,Website")
+            for biz in ai_results:
+                name = (biz.get("name") or "").replace('"', '""')
+                address = (biz.get("address") or "").replace('"', '""')
+                email = (biz.get("email") or "").replace('"', '""')
+                phone = (biz.get("phone_number") or "").replace('"', '""')
+                website = (biz.get("website") or "").replace('"', '""')
+                ai_csv_lines.append(f'"{name}","{address}","{email}","{phone}","{website}"')
+            ai_csv_content = "\n".join(ai_csv_lines)
+            
+            part2 = MIMEBase("application", "octet-stream")
+            part2.set_payload(ai_csv_content.encode("utf-8"))
+            encoders.encode_base64(part2)
+            part2.add_header("Content-Disposition", f"attachment; filename=zaucto_ai_results.csv")
+            msg.attach(part2)
+
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
         server.login(smtp_email, smtp_password)
         server.sendmail(smtp_email, to_email, msg.as_string())
         server.quit()
 
-        logging.info(f"Email sent successfully to {to_email}")
+        logging.info(f"Email sent successfully to {to_email} (scraper={total_results}, ai={ai_count})")
         return True
 
     except Exception as e:
         logging.warning(f"Failed to send email to {to_email}: {e}")
         return False
+
+
+@app.route("/scrape/job/<job_id>/ai-results", methods=["POST"])
+def store_ai_results(job_id: str):
+    """
+    Store AI Search results in the scrape job for email inclusion.
+    Called by the frontend after AI search completes.
+    """
+    data = request.get_json() or {}
+    results = data.get("results", [])
+    if not isinstance(results, list):
+        return jsonify({"error": "Invalid results format"}), 400
+    
+    with jobs_lock:
+        job = jobs.get(job_id)
+        if not job:
+            return jsonify({"error": "Job not found"}), 404
+        job.ai_results = results
+        logging.info(f"✅ AI results stored for job {job_id}: {len(results)} businesses")
+    
+    return jsonify({"success": True, "count": len(results)})
 
 
 def cleanup_old_jobs():
@@ -365,7 +450,7 @@ def start_scrape():
     if email and ("@" not in email or "." not in email):
         email = ""  # invalid email, ignore silently
     social_media_options = data.get("social_media_options", None)
-    headless = data.get("headless", True)  # Default True for safe headless mode
+    headless = data.get("headless", False)  # Default False - show browser window
     double_check = data.get("double_check", True)
 
     if not keyword or not location:
@@ -508,8 +593,8 @@ def saved_data_search():
     keyword = request.args.get("keyword", "").strip()
     location = request.args.get("location", "").strip()
 
-    if not keyword and not location:
-        return jsonify({"error": "Please provide a keyword or location to search"}), 400
+    if not keyword or not location:
+        return jsonify({"error": "Both keyword and location are required to search saved data"}), 400
 
     # Pagination params
     try:
@@ -566,6 +651,6 @@ def server_error(e):
 if __name__ == "__main__":
     print("=" * 55)
     print("  >>  Zaucto Scraper  v2.0")
-    print("  >>  http://127.0.0.1:5000")
+    print("  >>  http://127.0.0.1:5050")
     print("=" * 55)
-    app.run(debug=False, host="127.0.0.1", port=5000)
+    app.run(debug=False, host="127.0.0.1", port=5050)

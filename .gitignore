@@ -1,6 +1,39 @@
+# ─── Python ───────────────────────────────
 __pycache__/
 *.pyc
-result.csv
-output.csv
-playwright/.cache/ 
+*.pyo
+.venv/
+*.egg-info/
+dist/
+build/
+
+# ─── Environment ───────────────────────────
 .env
+
+# ─── Logs ──────────────────────────────────
+*.log
+
+# ─── Output files ──────────────────────────
+*.csv
+*.xlsx
+
+# ─── Debug / Test artifacts ────────────────
+debug_*.py
+diagnose_*.py
+test_*.py
+trace_*.py
+debug_*.json
+ai/usage_data.json
+
+# ─── Playwright ────────────────────────────
+playwright/.cache/
+
+# ─── AI usage data ─────────────────────────
+ai/usage_data.json
+
+# ─── OS files ──────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Public / Media ────────────────────────
+public/

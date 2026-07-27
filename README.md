@@ -37,6 +37,18 @@ The repo currently has 3 branches
 - Linux ( Linux Support if main branch does not work correctly)
 
 
+## AI Search Feature
+
+This project includes an **AI-powered business search** feature that runs alongside the Google Maps scraper.
+It uses **Zaucto AI** (powered by DeepSeek) to fetch business data directly via AI — no browser needed.
+
+- **Backend AI code**: `ai/` folder (blueprint, client, service)
+- **Frontend panel**: `static/ai-panel.js` (dynamic panel injection) + `static/ai-panel.css` (light theme styling)
+- **Toggle**: Enable "AI SEARCH" in the header to run AI search in parallel with scraping
+- **No separate input**: AI search reads keyword, location, results count, and filter from the main form
+- **Mode matching**: AI returns the same fields as the selected scraping mode (Fast/Deep/Ultra Deep)
+- **Never fabricates**: System prompt explicitly tells Zaucto AI to return empty strings for unknown fields
+
 ## Key Features
 - Data Scraping: The script scrapes data from Google Maps listings, extracting valuable information about businesses, such as their name, address, website, and contact details.
 

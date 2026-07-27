@@ -152,9 +152,6 @@
         /* ─── Theme Toggle ──────────────────────────── */
 
         .theme-toggle {
-            position: absolute;
-            top: 16px;
-            right: 16px;
             width: var(--toggle-size, 36px);
             height: var(--toggle-size, 36px);
             border-radius: 50%;
@@ -168,7 +165,7 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-family: inherit;
             outline: none;
-            z-index: 5;
+            flex-shrink: 0;
         }
 
         .theme-toggle:hover {
@@ -1865,6 +1862,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/static/ai-panel.css" />
 </head>
 <body>
 
@@ -1873,12 +1871,34 @@
     <div class="container">
         <!-- Main Card -->
         <div class="card">
-            <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle theme">
-                <!-- Moon icon (dark mode) -->
-                <span class="ico moon-icon" data-ico="moon"></span>
-                <!-- Sun icon (light mode) -->
-                        <span class="ico sun-icon" data-ico="sun"></span>
-            </button>
+            <div style="position: absolute; top: 16px; right: 16px; display: flex; align-items: center; gap: 10px; z-index: 5;">
+                <!-- Double Check toggle (hidden by default, shown in Deep/Ultra Deep mode) -->
+                <div id="headerDoubleCheck" style="display: none; align-items: center; gap: 8px; margin-right: 70px;">
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">DOUBLE CHECK</span>
+                    <label class="toggle-switch" id="doubleCheckLabel" style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 10px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; user-select: none; transition: border-color 0.3s, background 0.3s;">
+                        <input type="checkbox" id="doubleCheckToggle" style="display: none;" />
+                        <span class="toggle-slider" id="dcSlider" style="position: relative; width: 32px; height: 18px; background: var(--border-color); border-radius: 9px; transition: background 0.3s; flex-shrink: 0;">
+                            <span id="dcKnob" style="position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: transform 0.3s;"></span>
+                        </span>
+                        <span class="toggle-state" id="dcState" style="font-size: 10px; font-weight: 600; color: var(--text-muted); min-width: 22px; transition: color 0.3s;">OFF</span>
+                    </label>
+                </div>
+                <!-- AI SEARCH toggle (always visible) -->
+                <div id="headerAISearch" style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">AI SEARCH</span>
+                    <label class="toggle-switch" id="aiSearchLabel" style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 10px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; user-select: none; transition: border-color 0.3s, background 0.3s;">
+                        <input type="checkbox" id="aiSearchToggle" style="display: none;" />
+                        <span class="toggle-slider" id="aiSlider" style="position: relative; width: 32px; height: 18px; background: var(--border-color); border-radius: 9px; transition: background 0.3s; flex-shrink: 0;">
+                            <span id="aiKnob" style="position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: transform 0.3s;"></span>
+                        </span>
+                        <span class="toggle-state" id="aiState" style="font-size: 10px; font-weight: 600; color: var(--text-muted); min-width: 22px; transition: color 0.3s;">OFF</span>
+                    </label>
+                </div>
+                <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle theme">
+                    <span class="ico moon-icon" data-ico="moon"></span>
+                    <span class="ico sun-icon" data-ico="sun"></span>
+                </button>
+            </div>
 
             <!-- View Toggle -->
             <div class="view-toggle-container">
@@ -1909,7 +1929,7 @@
                     </div>
                     <div class="form-group">
                         <label for="total">Results</label>
-                        <input type="number" id="total" value="10" min="1" max="200" />
+                        <input type="number" id="total" value="10" min="1" max="30" />
                     </div>
                     <div class="form-group">
                         <label for="filterSelect">FILTER</label>
@@ -1917,28 +1937,15 @@
                             <option value="all">All</option>
                             <option value="none">None</option>
                             <option value="top_rated">Top Rated</option>
-                            <option value="open_now">Open Now</option>
+                            <option value="open_now">New</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Email (optional) + Double Check Toggle (side by side) -->
-                <div class="form-row" style="grid-template-columns: 1fr auto; margin-bottom: 16px;">
-                    <div class="form-group">
-                        <label for="emailInput">EMAIL (optional)</label>
-                        <input type="email" id="emailInput" placeholder="your@email.com" />
-                        <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Enter your email to receive the CSV file once scraping completes &mdash; you can close this window.</span>
-                    </div>
-                    <div class="form-group" id="doubleCheckGroup" style="display:none; align-self: flex-end; margin-bottom: 0;">
-                        <label style="white-space: nowrap;">DOUBLE CHECK</label>
-                        <label class="toggle-switch" id="doubleCheckLabel" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm); user-select: none; transition: border-color 0.3s, background 0.3s;">
-                            <input type="checkbox" id="doubleCheckToggle" style="display: none;" />
-                            <span class="toggle-slider" id="dcSlider" style="position: relative; width: 44px; height: 24px; background: var(--border-color); border-radius: 12px; transition: background 0.3s; flex-shrink: 0;">
-                                <span id="dcKnob" style="position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: transform 0.3s;"></span>
-                            </span>
-                            <span class="toggle-state" id="dcState" style="font-size: 12px; font-weight: 600; color: var(--text-muted); min-width: 28px; transition: color 0.3s;">OFF</span>
-                        </label>
-                    </div>
+                <!-- Email field -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="emailInput">EMAIL</label>
+                    <input type="email" id="emailInput" placeholder="your@email.com" />
                 </div>
 
                 <!-- Mode Selector -->
@@ -1948,21 +1955,21 @@
                         <span class="mode-icon"><span class="ico" data-ico="zap"></span></span>
                         <span class="mode-label">Fast Scrape</span>
                         <span class="mode-speed">~2s per result</span>
-                        <span class="mode-desc">Basic business info only</span>
+
                     </button>
                     <button type="button" class="mode-btn" data-mode="deep" id="modeDeep">
                         <span class="mode-badge"><span class="ico" data-ico="check"></span></span>
                         <span class="mode-icon"><span class="ico" data-ico="search"></span></span>
                         <span class="mode-label">Deep Mode</span>
                         <span class="mode-speed">~3s per result</span>
-                        <span class="mode-desc">Extract email &amp; social from Maps page</span>
+
                     </button>
                     <button type="button" class="mode-btn" data-mode="ultra_deep" id="modeUltraDeep">
                         <span class="mode-badge"><span class="ico" data-ico="check"></span></span>
                         <span class="mode-icon"><span class="ico" data-ico="search-smile"></span></span>
                         <span class="mode-label">Ultra Deep</span>
                         <span class="mode-speed">~15s per result</span>
-                        <span class="mode-desc">Visit website &amp; extract all social links</span>
+
                     </button>
                 </div>
 
@@ -2277,6 +2284,9 @@
         let estimatedSeconds = 0;
         let lastResults = [];
         let savedResults = [];
+        const SETUP_TIME = 20;           // Fixed 20s setup/init phase
+        const SECONDS_PER_RESULT = 3;     // ~3s per result after setup
+        let setupPhaseActive = false;
         let sdCurrentPage = 1;
         let sdTotalPages = 1;
         let sdTotalCount = 0;
@@ -2380,16 +2390,7 @@
             modeBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
             socialOptions.classList.toggle('visible', mode === 'ultra_deep');
             // Show Double Check toggle only in Deep / Ultra Deep mode
-            const dcGroup = document.getElementById('doubleCheckGroup');
-            if (dcGroup) {
-                dcGroup.style.display = (mode === 'deep' || mode === 'ultra_deep') ? 'flex' : 'none';
-                // Reset toggle to OFF when switching modes
-                const dcToggle = document.getElementById('doubleCheckToggle');
-                if (dcToggle && dcToggle.checked) {
-                    dcToggle.checked = false;
-                    updateDoubleCheckUI(false);
-                }
-            }
+            updateDoubleCheckState(mode);
             updateFieldsPreview();
         }
 
@@ -2421,18 +2422,46 @@
             }
         }
 
+        function updateDoubleCheckState(mode) {
+            const container = document.getElementById('headerDoubleCheck');
+            const toggle = document.getElementById('doubleCheckToggle');
+            const isDeepOrUltra = (mode === 'deep' || mode === 'ultra_deep');
+
+            // Show/hide the Double Check toggle only in Deep/Ultra Deep mode
+            if (container) {
+                container.style.display = isDeepOrUltra ? 'flex' : 'none';
+            }
+
+            if (!toggle) return;
+            toggle.disabled = !isDeepOrUltra;
+
+            // Force OFF when switching to Fast mode (toggle has no meaning there)
+            if (!isDeepOrUltra && toggle.checked) {
+                toggle.checked = false;
+                updateDoubleCheckUI(false);
+            }
+            // Update visual disabled state
+            const label = document.getElementById('doubleCheckLabel');
+            if (label) {
+                label.style.opacity = isDeepOrUltra ? '1' : '0.5';
+                label.style.cursor = isDeepOrUltra ? 'pointer' : 'not-allowed';
+            }
+        }
+
         const dcToggle = document.getElementById('doubleCheckToggle');
         if (dcToggle) {
             dcToggle.addEventListener('change', function() {
+                if (this.disabled) return; // safety check — disabled inputs shouldn't trigger change, but just in case
                 if (this.checked) {
                     // Warning popup only when enabling
-                    alert("Double Check ON: Har business ki website DO BAAR visit ki jayegi — ye zyada accurate hai lekin time roughly double ho jayega.");
+                    alert("Double Check ON: Each business's website will be visited TWICE — this is more accurate but will roughly double the time.");
                 }
                 updateDoubleCheckUI(this.checked);
             });
-            // Initialize OFF state
+            // Initialize: default Fast mode → disabled OFF
             updateDoubleCheckUI(false);
             dcToggle.checked = false;
+            updateDoubleCheckState('fast');
         }
 
         // Initialize fields preview for default mode (Fast Scrape)
@@ -2489,6 +2518,10 @@
         }
 
         function updateProgress(scraped, total, label) {
+            // Don't update circle/count during setup phase (first ~20s)
+            // The countdown timer handles that. Once setup is done,
+            // the polling data takes over.
+            if (setupPhaseActive) return;
             const pct = total > 0 ? Math.min(Math.round((scraped / total) * 100), 100) : 0;
             const offset = CIRCUMFERENCE - (pct / 100) * CIRCUMFERENCE;
             progressCircle.style.strokeDashoffset = offset;
@@ -2802,14 +2835,19 @@
         }
 
         /* ─── Polling ─────────────────────────────────── */        function startCountdown(mode, total, locationCount) {
-            // Calculate estimated seconds based on mode speed
-    let secsPerResult = 2; // fast mode default
-    if (mode === 'deep') secsPerResult = 3;
-    else if (mode === 'ultra_deep') secsPerResult = 15;
-    // Factor in number of locations for multi-scraping (each location has browser overhead)
-    const locCount = locationCount || 1;
-    const overheadPerLocation = 15; // browser launch + search time
-    estimatedSeconds = Math.max(10, (total * secsPerResult) + (locCount * overheadPerLocation));
+            // ── Two-phase timer ─────────────────────────────────────
+            // Phase 1 (fixed 20s): Setup/initialization countdown
+            // Phase 2 (3s per result): Actual scraping progress
+            // Total = 20s + (totalResults * 3s)
+            const locCount = locationCount || 1;
+            const totalResults = total * locCount;
+
+            const phase1Seconds = SETUP_TIME;
+            const phase2Seconds = totalResults * SECONDS_PER_RESULT;
+            estimatedSeconds = phase1Seconds + phase2Seconds;
+
+            setupPhaseActive = true;
+            const setupStartTime = Date.now();  // Real-wall time for accuracy
 
             let remaining = estimatedSeconds;
 
@@ -2820,6 +2858,12 @@
             countdownDisplay.style.display = 'block';
             almostDoneText.style.display = 'none';
 
+            // Show setup phase in the circle
+            circleLabel.textContent = 'Initializing scraper...';
+            circleCount.textContent = `${SETUP_TIME}s`;
+            // Reset circle to empty
+            progressCircle.style.strokeDashoffset = CIRCUMFERENCE;
+
             if (countdownTimer) {
                 clearInterval(countdownTimer);
                 countdownTimer = null;
@@ -2828,8 +2872,28 @@
             countdownTimer = setInterval(() => {
                 remaining--;
 
+                if (setupPhaseActive) {
+                    // Use wall-clock elapsed time to avoid browser throttle drift
+                    const elapsedSeconds = (Date.now() - setupStartTime) / 1000;
+                    const setupProgress = Math.min(elapsedSeconds / SETUP_TIME, 1);
+                    const setupRemaining = Math.max(0, SETUP_TIME - Math.floor(elapsedSeconds));
+
+                    // Phase 1: slowly fill the circle as setup progresses
+                    const offset = CIRCUMFERENCE - setupProgress * CIRCUMFERENCE;
+                    progressCircle.style.strokeDashoffset = offset;
+                    circleCount.textContent = `${setupRemaining}s`;
+
+                    if (elapsedSeconds >= SETUP_TIME) {
+                        // Phase 1 complete → switch to Phase 2
+                        setupPhaseActive = false;
+                        circleLabel.textContent = 'Scraping businesses...';
+                        circleCount.textContent = `0 / ${totalResults}`;
+                        // Reset circle to empty for scraping progress
+                        progressCircle.style.strokeDashoffset = CIRCUMFERENCE;
+                    }
+                }
+
                 if (remaining <= 0) {
-                    // Timer expired – show blinking "Almost done" message
                     clearInterval(countdownTimer);
                     countdownTimer = null;
                     countdownDisplay.style.display = 'none';
@@ -2839,8 +2903,7 @@
 
                 const m = Math.floor(remaining / 60);
                 const s = remaining % 60;
-                countdownDisplay.textContent = `~${m}:${s.toString().padStart(2, '0')} remaining`;
-            }, 1000);
+                countdownDisplay.textContent = `~${m}:${s.toString().padStart(2, '0')} remaining`;                            }, 1000);  // Update every 1s — Date.now() handles smooth Phase 1
         }
 
         function clearCountdown() {
@@ -2851,6 +2914,7 @@
             countdownDisplay.style.display = 'none';
             almostDoneText.style.display = 'none';
             estimatedSeconds = 0;
+            setupPhaseActive = false;
         }
 
         function startPolling(jobId, mode, total, locationCount) {
@@ -3078,6 +3142,17 @@
                 const locCount = (data.multi_location && data.locations) ? data.locations.length : 1;
                 startPolling(data.job_id, currentMode, total, locCount);
 
+                // NEW: AI Search trigger (parallel, independent — only if toggle is ON)
+                const aiTog = document.getElementById('aiSearchToggle');
+                if (aiTog && aiTog.checked) {
+                    const filterVal = document.getElementById('filterSelect').value;
+                    const resultsVal = document.getElementById('total').value;
+                    if (typeof window.openAIPanel === 'function') window.openAIPanel();
+                    if (typeof window.triggerAISearch === 'function') {
+                        window.triggerAISearch(keyword, location, resultsVal, filterVal, currentMode, data.job_id);
+                    }
+                }
+
             } catch (err) {
                 setFormEnabled(true);
                 showProgress(false);
@@ -3096,6 +3171,32 @@
                 form.dispatchEvent(new Event('submit'));
             }
         });
+
+        // ─── AI Search Toggle UI ───────────────────────────
+        const aiToggle = document.getElementById('aiSearchToggle');
+        const aiSlider = document.getElementById('aiSlider');
+        const aiKnob = document.getElementById('aiKnob');
+        const aiState = document.getElementById('aiState');
+        const aiLabel = document.getElementById('aiSearchLabel');
+        if (aiToggle && aiSlider && aiKnob && aiState && aiLabel) {
+            aiToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    aiSlider.style.background = '#3b82f6';
+                    aiKnob.style.transform = 'translateX(20px)';
+                    aiState.textContent = 'ON';
+                    aiState.style.color = '#60a5fa';
+                    aiLabel.style.borderColor = '#3b82f6';
+                    aiLabel.style.background = 'rgba(59, 130, 246, 0.1)';
+                } else {
+                    aiSlider.style.background = 'var(--border-color)';
+                    aiKnob.style.transform = 'translateX(0)';
+                    aiState.textContent = 'OFF';
+                    aiState.style.color = 'var(--text-muted)';
+                    aiLabel.style.borderColor = 'var(--border-color)';
+                    aiLabel.style.background = '';
+                }
+            });
+        }
 
         exportBtn.addEventListener('click', () => exportCSV(lastResults));
         copyBtn.addEventListener('click', () => copyJSON(lastResults));
@@ -3323,8 +3424,8 @@ sdSearchBtn.addEventListener('click', () => {
     const kw = sdKeyword.value.trim();
     const loc = sdLocation.value.trim();
 
-    if (!kw && !loc) {
-        showSdError('Please provide a keyword or location to search.');
+    if (!kw || !loc) {
+        showSdError('Please provide both a keyword and a location to search saved data.');
         return;
     }
 
@@ -3365,7 +3466,7 @@ sdSearchBtn.addEventListener('click', () => {
         sdCopyBtn.addEventListener('click', () => copyJSON(savedResults));
 sdClearBtn.addEventListener('click', () => {
     // If nothing to clear and already showing demo, just notify
-    if (!sdKeyword.value && !sdLocation.value && savedResults.length === 0) {
+    if ((!sdKeyword.value || !sdLocation.value) && savedResults.length === 0) {
         showToast('Already showing demo data', 'alert');
         return;
     }
@@ -3465,5 +3566,8 @@ sdClearBtn.addEventListener('click', () => {
         vtSavedData.addEventListener('click', () => switchView('saved-data'));
     </script>
 
+    <!-- AI Search Panel root (panel HTML dynamically injected by ai-panel.js) -->
+    <div id="ai-panel-root"></div>
+    <script src="/static/ai-panel.js"></script>
 </body>
 </html>

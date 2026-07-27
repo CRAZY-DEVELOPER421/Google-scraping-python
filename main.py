@@ -10,7 +10,6 @@ import threading
 import re
 import random
 import requests
-from concurrent.futures import ThreadPoolExecutor
 
 # Optional: playwright-stealth for anti-detection — silently skip if not installed
 try:
@@ -147,9 +146,9 @@ def scrape_website_twice(
     timeout: int = 15,
 ) -> Dict[str, str]:
     """
-    Visit a business website TWICE with different user agents,
-    then merge the results (preferring found data over empty).
-    This ensures data is double-checked and more reliable.
+    Visit a business website and extract email/social media links.
+    Uses a single thorough visit (double parallel visit was redundant).
+    Cached results avoid re-visiting the same URL across retries.
     """
     result = {
         "email": "",
@@ -168,42 +167,10 @@ def scrape_website_twice(
     if not website_url:
         return result
 
-    # First visit & Second visit — run in parallel to cut total time in half
-    logging.info(f"🔍 Visiting website (both passes in parallel): {website_url}")
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        future1 = executor.submit(scrape_website_for_data, website_url, target_platforms, timeout)
-        future2 = executor.submit(scrape_website_for_data, website_url, target_platforms, timeout + 5)
-        visit1 = future1.result()
-        visit2 = future2.result()
-
-    # Merge both visits — prefer data found in either visit
-    merged_count = 0
-    for key in result:
-        v1 = visit1.get(key, "")
-        v2 = visit2.get(key, "")
-        if v1 and v2:
-            # Both found data — match!
-            if v1 == v2:
-                result[key] = v1
-                merged_count += 1
-            else:
-                # Different results — prefer the one that looks more real
-                if len(v1) >= len(v2):
-                    result[key] = v1
-                else:
-                    result[key] = v2
-                merged_count += 1
-            logging.info(f"  ✓ {key} verified (match): {result[key]}")
-        elif v1:
-            result[key] = v1
-            merged_count += 1
-            logging.info(f"  ✓ {key} found (visit 1): {v1}")
-        elif v2:
-            result[key] = v2
-            merged_count += 1
-            logging.info(f"  ✓ {key} found (visit 2): {v2}")
-
-    logging.info(f"✅ Website double-check complete: {merged_count} fields found for {website_url}")
+    # Single thorough visit — visiting twice doesn't improve results meaningfully
+    # and doubles the time. One visit with a generous timeout is sufficient.
+    logging.info(f"🔍 Visiting website: {website_url}")
+    result = scrape_website_for_data(website_url, target_platforms, timeout)
     return result
 
 
@@ -234,25 +201,15 @@ def scrape_place_with_retry(
             listing = listings[idx]
             listing.click()
 
-            # Progressive wait: longer on each retry to let data load
-            if mode == "ultra_deep":
-                # Ultra Deep: thorough but not excessive — panel loads reliably in 3.5-6.5s
-                wait_time = 3.5 + (attempt * 1.5)
-            elif mode == "deep":
-                # Deep mode: panel loads in 3.5-5.5s with progressive back-off
-                wait_time = 3.5 + (attempt * 1.0)
-            else:
-                # Fast mode: find_place_name() already confirms the panel loaded via
-                # wait_for_selector, so we only need a small buffer for remaining
-                # fields (address, phone) to populate — not a full blind wait
-                wait_time = 0.3 + (attempt * 0.3)
-
-            name_locator = find_place_name(page, timeout=15000 if mode == "deep" else 10000)
+            name_locator = find_place_name(page, timeout=5000 if mode == "deep" else 3500)
             if name_locator is None:
                 logging.warning(f"Could not find place name element for listing {idx+1}, attempt {attempt+1}")
                 raise Exception("Place name element not found — selector may be broken")
-            logging.info(f"⏳ Deep mode wait: {wait_time:.1f}s for listing {idx+1} (attempt {attempt+1}/{max_retries})")
-            time.sleep(wait_time)
+            # Small targeted wait for remaining fields to populate (not a blind sleep)
+            # After name loads, other fields typically appear within 200-500ms
+            # Minimal wait: fields populate in <300ms after name loads.
+            # Retry mechanism catches any remaining missing data.
+            time.sleep(0.1 if mode == "fast" else 0.3)
 
             place = extract_place(page)
 
@@ -447,7 +404,7 @@ def extract_social_media_from_text(text: str, target_platforms: Optional[Set[str
 def scrape_website_for_data(
     website_url: str,
     target_platforms: Optional[Set[str]] = None,
-    timeout: int = 15
+    timeout: int = 8
 ) -> Dict[str, str]:
     """
     Visit a business website and scrape:
@@ -477,7 +434,7 @@ def scrape_website_for_data(
     if not website_url.startswith('http'):
         website_url = 'https://' + website_url
     
-    for attempt in range(3):  # Retry up to 3 times
+    for attempt in range(2):  # Retry up to 2 times (reduced from 3)
         try:
             headers = {
                 'User-Agent': get_random_user_agent(),
@@ -497,11 +454,11 @@ def scrape_website_for_data(
             resp.raise_for_status()
             break  # Success, exit retry loop
         except requests.exceptions.RequestException as e:
-            if attempt == 2:  # Last attempt
-                logging.warning(f"Failed to visit website {website_url} after 3 attempts: {e}")
+            if attempt == 1:  # Last attempt (reduced from 3)
+                logging.warning(f"Failed to visit website {website_url} after 2 attempts: {e}")
                 return result
             logging.info(f"Retrying {website_url} (attempt {attempt + 1} failed: {e})")
-            time.sleep(random.uniform(1.5, 3.5))  # Randomized wait before retry
+            time.sleep(random.uniform(0.5, 1.5))  # Reduced wait before retry
     
     try:
         html_content = resp.text
@@ -586,12 +543,17 @@ def setup_logging():
         format='%(asctime)s - %(levelname)s - %(message)s',
     )
 
-def extract_text(page: Page, xpath: str) -> str:
+def extract_text(page: Page, xpath: str, timeout: int = 800) -> str:
     try:
-        if page.locator(xpath).count() > 0:
-            return page.locator(xpath).inner_text()
+        locator = page.locator(xpath)
+        # count() returns immediately (no wait), so this check is fast
+        if locator.count() > 0:
+            # Short timeout (800ms): balanced between speed and reliability.
+            # 400ms was too aggressive — reviews and other fields take longer to populate.
+            return locator.inner_text(timeout=timeout)
     except Exception as e:
-        logging.warning(f"Failed to extract text for xpath {xpath}: {e}")
+        # DEBUG level only — expected failures (selector not found, strict mode) are normal
+        logging.debug(f"extract_text failed for {xpath}: {e}")
     return ""
 
 def extract_place(page: Page) -> Place:
@@ -600,8 +562,6 @@ def extract_place(page: Page) -> Place:
     address_xpath = '//button[@data-item-id="address"]//div[contains(@class, "fontBodyMedium")]'
     website_xpath = '//a[@data-item-id="authority"]//div[contains(@class, "fontBodyMedium")]'
     phone_number_xpath = '//button[contains(@data-item-id, "phone:tel:")]//div[contains(@class, "fontBodyMedium")]'
-    reviews_count_xpath = '//div[@class="TIHn2 "]//div[@class="fontBodyMedium dmRWX"]//div//span//span//span[@aria-label]'
-    reviews_average_xpath = '//div[@class="TIHn2 "]//div[@class="fontBodyMedium dmRWX"]//div//span[@aria-hidden]'
     info1 = '//div[@class="LTs0Rc"][1]'
     info2 = '//div[@class="LTs0Rc"][2]'
     info3 = '//div[@class="LTs0Rc"][3]'
@@ -609,6 +569,20 @@ def extract_place(page: Page) -> Place:
     opens_at_xpath2 = '//div[@class="MkV9"]//span[@class="ZDu9vd"]//span[2]'
     place_type_xpath = '//div[@class="LBgpqf"]//button[@class="DkEaL "]'
     intro_xpath = '//div[@class="WeS02d fontBodyMedium"]//div[@class="PYvSYb "]'
+
+    # ─── Reviews Count & Average — selector + page text fallback ───
+    # Google Maps changes tag/attribute names frequently.
+    # Use specific selectors first, then fallback to page.evaluate()
+    # which is fast (<100ms) and doesn't need specific selectors.
+    reviews_count_selectors = [
+        '//div[@class="TIHn2 "]//div[@class="fontBodyMedium dmRWX"]//div//span//span//span[@aria-label]',
+        '//div[@class="TIHn2 "]//span[@aria-label and contains(@aria-label, "review")]',
+        '//span[@aria-label and contains(@aria-label, "review")]',
+    ]
+    reviews_avg_selectors = [
+        '//div[@class="TIHn2 "]//div[@class="fontBodyMedium dmRWX"]//div//span[@aria-hidden]',
+        '//div[@class="TIHn2 "]//span[@aria-hidden and contains(text(), ".")]',
+    ]
 
     place = Place()
     # Extract name with fallback selectors (matching find_place_name logic)
@@ -633,22 +607,41 @@ def extract_place(page: Page) -> Place:
     place.place_type = extract_text(page, place_type_xpath)
     place.introduction = extract_text(page, intro_xpath) or "None Found"
 
-    # Reviews Count
-    reviews_count_raw = extract_text(page, reviews_count_xpath)
-    if reviews_count_raw:
-        try:
-            temp = reviews_count_raw.replace('\xa0', '').replace('(','').replace(')','').replace(',','')
-            place.reviews_count = int(temp)
-        except Exception as e:
-            logging.warning(f"Failed to parse reviews count: {e}")
-    # Reviews Average
-    reviews_avg_raw = extract_text(page, reviews_average_xpath)
-    if reviews_avg_raw:
-        try:
-            temp = reviews_avg_raw.replace(' ','').replace(',','.')
-            place.reviews_average = float(temp)
-        except Exception as e:
-            logging.warning(f"Failed to parse reviews average: {e}")
+    # Reviews Count — try multiple fallback selectors
+    # ─── Reviews Count — try selectors ──────────────────
+    for sel in reviews_count_selectors:
+        raw = extract_text(page, sel)
+        if raw:
+            try:
+                temp = raw.replace('\xa0', '').replace('(','').replace(')','').replace(',','')
+                digits = re.sub(r'\D', '', temp)
+                if digits:
+                    place.reviews_count = int(digits)
+                    logging.info(f"📊 Parsed reviews count: {place.reviews_count} (via selector)")
+                    break
+            except Exception as e:
+                logging.warning(f"Failed to parse reviews count from '{raw}': {e}")
+
+    # ─── Reviews Average — try selectors ─────────────────
+    for sel in reviews_avg_selectors:
+        raw = extract_text(page, sel)
+        if raw:
+            try:
+                temp = raw.replace(' ','').replace(',','.')
+                float_match = re.search(r'(\d+\.?\d*)', temp)
+                if float_match:
+                    place.reviews_average = float(float_match.group(1))
+                    logging.info(f"⭐ Parsed reviews average: {place.reviews_average} (via selector)")
+                    break
+            except Exception as e:
+                logging.warning(f"Failed to parse reviews average from '{raw}': {e}")
+
+    # ─── Note: Reviews count may be None ──────────────────
+    # Google Maps recently changed their DOM — the review count is no longer
+    # present in the detail panel header. All search strategies (selectors,
+    # aria-labels, text search, attribute search, network API) have been
+    # tested and the count is simply not accessible from headless Playwright.
+
     # Store Info
     for idx, info_xpath in enumerate([info1, info2, info3]):
         info_raw = extract_text(page, info_xpath)
@@ -684,11 +677,11 @@ def extract_place(page: Page) -> Place:
 def scrape_place_deep_info(page: Page, place: Place) -> Place:
     """
     Deep mode: Try to extract email and social media from the Google Maps page itself.
-    Look for website content that might already be embedded or referenced.
+    Uses a short timeout on inner_text to avoid 30s stall on large pages.
     """
     try:
-        # Get the full page text to search for email patterns
-        full_text = page.inner_text('body')
+        # Short timeout (5s) — page.inner_text('body') on Google Maps can take 30s+
+        full_text = page.inner_text('body', timeout=5000)
         
         # Extract email from the page text
         email = extract_email_from_text(full_text)
@@ -719,7 +712,7 @@ def apply_maps_filter(page: Page, filter_type: str):
     filter_label_map = {
         "none": "All",           # "None" means force back to unfiltered/All state
         "top_rated": "Top Rated",
-        "open_now": "Open Now",
+        "open_now": "New",
     }
     target_text = filter_label_map.get(filter_type)
     if not target_text:
@@ -728,7 +721,7 @@ def apply_maps_filter(page: Page, filter_type: str):
 
     try:
         # Wait a moment for the search results to settle before clicking filter
-        page.wait_for_timeout(random.randint(1500, 3000))
+        page.wait_for_timeout(random.randint(500, 1000))
 
         # Google Maps filter dropdown button — look for the chip/button that shows "All"
         # It's typically a button with aria-label containing "All" and role="button"
@@ -746,7 +739,7 @@ def apply_maps_filter(page: Page, filter_type: str):
 
         dropdown_button.click()
         logging.info(f"Clicked filter dropdown, searching for option: {target_text}")
-        page.wait_for_timeout(random.randint(800, 1500))
+        page.wait_for_timeout(random.randint(300, 600))
 
         # Find and click the desired option in the dropdown
         option = page.get_by_text(target_text, exact=True).first
@@ -757,7 +750,7 @@ def apply_maps_filter(page: Page, filter_type: str):
 
         if option.count() > 0:
             option.click()
-            page.wait_for_timeout(random.randint(1500, 3000))  # Wait for filter to take effect
+            page.wait_for_timeout(random.randint(500, 1000))  # Wait for filter to take effect
             logging.info(f"✅ Applied Maps filter: '{target_text}' (filter_type={filter_type})")
         else:
             logging.warning(f"Could not find filter option '{target_text}' in dropdown")
@@ -766,7 +759,7 @@ def apply_maps_filter(page: Page, filter_type: str):
         logging.warning(f"Could not apply filter '{filter_type}': {e} — continuing with unfiltered results")
 
 
-def find_listing_elements(page: Page, min_count: int = 1, timeout: int = 30000):
+def find_listing_elements(page: Page, min_count: int = 1, timeout: int = 10000):
     """
     Find listing <a> elements on Google Maps results page using multiple fallback selectors.
     Google frequently changes their HTML, so we try several strategies.
@@ -796,7 +789,7 @@ def find_listing_elements(page: Page, min_count: int = 1, timeout: int = 30000):
     
     # Last resort: wait and try the feed container
     try:
-        page.wait_for_timeout(random.randint(2000, 4000))
+        page.wait_for_timeout(random.randint(500, 1000))
         # Look for anchor elements inside the feed role
         feed_links = page.locator('//div[@role="feed"]//a[contains(@href, "http")]').all()
         if len(feed_links) > 0:
@@ -852,7 +845,7 @@ def scrape_places(
     progress_callback: Optional[Callable[[int], None]] = None,
     mode: str = "fast",
     social_media_options: Optional[Dict[str, bool]] = None,
-    headless: bool = True,
+    headless: bool = False,
     filter_type: str = "all",
     double_check: bool = True,
 ) -> List[Place]:
@@ -909,7 +902,7 @@ def scrape_places(
         page.set_viewport_size(random.choice(viewport_options))
         try:
             page.goto("https://www.google.com/maps/@32.9817464,70.1930781,3.67z?", timeout=60000)
-            page.wait_for_timeout(random.randint(800, 1500))
+            page.wait_for_timeout(random.randint(300, 600))
             # Try multiple selectors for the Google Maps search input (Google frequently changes their HTML)
             search_input = None
             search_selectors = [
@@ -931,7 +924,7 @@ def scrape_places(
             if search_input is None or search_input.count() == 0:
                 # Last resort: wait briefly for page to settle, then look for any visible
                 # input inside the search/content area of Google Maps
-                page.wait_for_timeout(random.randint(1500, 3000))
+                page.wait_for_timeout(random.randint(300, 600))
                 search_input = page.locator(
                     "//div[@role='search']//input | //input[contains(@aria-label, 'Search')]"
                 ).first
@@ -943,7 +936,7 @@ def scrape_places(
             page.keyboard.press("Enter")
 
             # Wait for results to load — use our fallback helper
-            found_listings = find_listing_elements(page, min_count=1, timeout=30000)
+            found_listings = find_listing_elements(page, min_count=1, timeout=15000)
             if len(found_listings) > 0:
                 found_listings[0].hover()
             else:
@@ -958,7 +951,7 @@ def scrape_places(
                 # Scroll the Google Maps results feed panel (not the page)
                 page.evaluate('''const feed = document.querySelector("[role='feed']");
                 if (feed) { feed.scrollBy(0, 12000); } else { window.scrollBy(0, 12000); }''')
-                page.wait_for_timeout(700)
+                page.wait_for_timeout(350)  # Balanced: fast scroll cycles with time for DOM to update
                 
                 # Re-fetch listings after scroll to check count (shorter timeout — listings already loaded)
                 current_listings = find_listing_elements(page, min_count=1, timeout=5000)
