@@ -20,14 +20,20 @@ from ai.usage_tracker import get_usage
 
 # ─── Shared constants ────────────────────────────────────────
 
-SKIP_DOMAINS = [
+# Domains that are NOT real business websites — skip for official website attribution
+# But we still EXTRACT BUSINESS NAMES from them (directories list real businesses)
+SOCIAL_DOMAINS = {
     'facebook.com', 'twitter.com', 'instagram.com', 'linkedin.com',
     'youtube.com', 'pinterest.com', 'reddit.com', 'quora.com',
-    'wikipedia.org', 'justdial.com', 'sulekha.com', 'yellowpages',
-    'indiamart', 'zomato.com', 'swiggy.com', 'tripadvisor',
-    'booking.com', 'timesofindia', 'hindustantimes', 'cntraveller',
-    'theworlds50best', 'google.com/maps', 'maps.google',
-]
+}
+
+# Directories / aggregators — NOT used as official website, but DO contain real business names
+DIRECTORY_DOMAINS = {
+    'justdial.com', 'sulekha.com', 'yellowpages', 'indiamart',
+    'zomato.com', 'swiggy.com', 'tripadvisor', 'booking.com',
+    'timesofindia', 'hindustantimes', 'cntraveller', 'theworlds50best',
+    'google.com/maps', 'maps.google', 'wikipedia.org',
+}
 
 # ─── Streaming Job Store ──────────────────────────────────────
 STREAM_JOBS = {}
@@ -57,8 +63,9 @@ def _extract_businesses_from_titles(raw_results, keyword, location, result_count
         link = (result.get('link') or '').strip()
         if not title or len(title) < 5:
             continue
-        # Skip non-business domains
-        if any(d in link.lower() for d in SKIP_DOMAINS):
+        # Skip ONLY social media domains — directories (justdial, indiamart, etc.)
+        # have real business names and are VALUABLE for name extraction
+        if any(d in link.lower() for d in SOCIAL_DOMAINS):
             continue
         # Skip article/listicle titles
         if any(re.search(p, title, re.IGNORECASE) for p in ARTICLE_PATS):
@@ -141,7 +148,7 @@ def extract_all_businesses_at_once(raw_results, keyword, location, result_count)
         except Exception as e:
             logging.warning(f"  [DeepSeek] Failed: {e}")
     
-    # Fallback: fill remaining slots from titles
+    # Fallback: fill remaining slots from titles (also from directory sites)
     if len(businesses) < result_count:
         existing = {b['name'].lower().strip() for b in businesses if b.get('name')}
         fallback = _extract_businesses_from_titles(raw_results, keyword, location, result_count)
@@ -149,6 +156,39 @@ def extract_all_businesses_at_once(raw_results, keyword, location, result_count)
             if fb['name'].lower().strip() not in existing:
                 businesses.append(fb)
                 existing.add(fb['name'].lower().strip())
+    
+    # ULTIMATE fallback: if STILL short, extract ANY name-like text from ALL raw results
+    # (including directory sites — their titles contain real business names)
+    if len(businesses) < result_count:
+        existing = {b['name'].lower().strip() for b in businesses if b.get('name')}
+        for r in raw_results:
+            if len(businesses) >= result_count:
+                break
+            title = (r.get('title') or '').strip()
+            if not title or len(title) < 5:
+                continue
+            # Extract name before any separator
+            name = title
+            for sep in [' | ', ' - ', ' — ', ' – ', ' |', '|']:
+                if sep in name:
+                    name = name.split(sep)[0].strip()
+                    break
+            # Remove parentheticals and trailing noise
+            name = re.sub(r'\s*\([^)]*\)\s*', ' ', name).strip()
+            name = re.sub(r'\s+in\s+\w+(?:\s+\w+)?$', '', name, flags=re.IGNORECASE).strip()
+            if len(name) < 3 or len(name) > 80:
+                continue
+            if name.lower().strip() in existing:
+                continue
+            businesses.append({
+                'name': name,
+                'address': '',
+                'email': '',
+                'phone_number': '',
+                'website': r.get('link', ''),
+            })
+            existing.add(name.lower().strip())
+        logging.info(f"  [ULTIMATE FALLBACK] Added {len(businesses)} total businesses")
     
     return businesses[:result_count]
 
@@ -238,9 +278,9 @@ def _light_enrich_from_snippets(businesses, raw_results):
         snippet = (r.get('snippet') or '').strip()
         if not link:
             continue
-        # Skip if link is from a directory/database site
+        # Skip if link is from social media (directories are fine for name matching)
         link_lower = link.lower()
-        if any(d in link_lower for d in SKIP_DOMAINS):
+        if any(d in link_lower for d in SOCIAL_DOMAINS):
             continue
         
         # Check if this result matches any business
@@ -255,8 +295,9 @@ def _light_enrich_from_snippets(businesses, raw_results):
                 continue
             if all(w in title_lower or w in snippet_lower for w in match_words):
                 # Fill website from link (only if better than existing)
+                _all_skip = SOCIAL_DOMAINS | DIRECTORY_DOMAINS
                 existing = biz.get("website", "")
-                if not existing or any(d in existing.lower() for d in SKIP_DOMAINS):
+                if not existing or any(d in existing.lower() for d in _all_skip):
                     biz["website"] = link
                 # Try to extract address from snippet
                 if not biz.get("address"):
@@ -354,16 +395,17 @@ def _light_enrich_from_web(businesses, location, max_businesses=20):
                 addr = _extract_address_via_regex(text)
                 if addr:
                     biz["address"] = addr
+            _all_skip = SOCIAL_DOMAINS | DIRECTORY_DOMAINS
             if not biz.get("website"):
-                # Take the first search result link that isn't a known directory site
+                # Take the first search result link that isn't a known directory/social site
                 for r in details:
                     link = (r.get('link') or '').strip()
-                    if link and not any(d in link.lower() for d in SKIP_DOMAINS):
+                    if link and not any(d in link.lower() for d in _all_skip):
                         biz["website"] = link
                         break
             # Also try to overwrite existing bad website
             existing_web = biz.get("website", "")
-            if existing_web and any(d in existing_web.lower() for d in SKIP_DOMAINS):
+            if existing_web and any(d in existing_web.lower() for d in _all_skip):
                 for r in details:
                     link = (r.get('link') or '').strip()
                     if link and not any(d in link.lower() for d in SKIP_DOMAINS):
@@ -466,6 +508,46 @@ def _is_business_query(query: str) -> bool:
     return False
 
 
+# ─── Multi-search helper ──────────────────────────────────────
+# Serper's API returns ~10 organic results per query.
+# By running 2-3 related queries we get ~20-30 raw results,
+# giving DeepSeek + fallback enough material to find the requested count.
+
+def _multi_search(main_query, keyword, location, result_count):
+    """Run 2-3 search queries and combine results, deduplicating by URL."""
+    # Determine how many results to request per query
+    per_query = min(max(result_count * 2, 10), 30)
+    
+    queries = [main_query]
+    
+    # Add a supplementary query to find more businesses
+    loc = f" in {location}" if location else ""
+    queries.append(f"{keyword}{loc} contact phone email address website")
+    
+    # Third query for even more coverage (only if result_count > 8)
+    if result_count > 8:
+        queries.append(f"{keyword}{loc} suppliers dealers companies")
+    
+    all_results = []
+    seen_urls = set()
+    
+    for q in queries:
+        results = search_web(q, num_results=per_query, timeout=15)
+        if not results:
+            continue
+        for r in results:
+            url = (r.get('link') or '').strip()
+            if url and url in seen_urls:
+                continue
+            if url:
+                seen_urls.add(url)
+            all_results.append(r)
+        # Small delay between queries to avoid rate limiting
+        _time.sleep(0.5)
+    
+    return all_results
+
+
 # ─── Main pipeline ────────────────────────────────────────────
 
 def run_ai_search(search_query, mode, result_count, keyword, location):
@@ -479,12 +561,13 @@ def run_ai_search(search_query, mode, result_count, keyword, location):
     if usage["remaining"] <= 1:
         return {"error": "API quota exhausted", "usage": usage, "results": []}
     
-    # Step 1: Search
-    raw = search_web(search_query, num_results=max(result_count * 5, 20))
+    # Step 1: Search — do MULTIPLE searches to get more raw results
+    # Serper typically returns ~10 results per query, so 3 queries = ~30 raw results
+    raw = _multi_search(search_query, keyword, location, result_count)
     if not raw:
         return {"results": [], "usage": get_usage()}
     
-    logging.info(f"  Got {len(raw)} raw results (target={result_count})")
+    logging.info(f"  Got {len(raw)} raw results across queries (target={result_count})")
     
     # Step 2: Extract (DeepSeek + fallback)
     businesses = extract_all_businesses_at_once(raw, keyword, location, result_count)
@@ -526,8 +609,8 @@ def handle_chat_query(user_query, mode, result_count=10):
     
     keyword = user_query.split(" in ")[0].split(" near ")[0].strip() if (" in " in user_query or " near " in user_query) else user_query
     
-    # Step 1: Web search (fast, ~2-5s)
-    raw = search_web(user_query, num_results=max(result_count * 5, 20))
+    # Step 1: Web search — do MULTIPLE searches to get more raw results
+    raw = _multi_search(user_query, keyword, location, result_count)
     if not raw:
         return {"type": "search_result", "message": f"No results for '{user_query}'.",
                 "results": [], "usage": get_usage()}

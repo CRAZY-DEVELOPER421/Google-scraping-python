@@ -1018,7 +1018,9 @@ def scrape_places(
                 previously_counted = found
             
             # Final fetch of listings (shorter timeout — listings already loaded)
-            all_listings = find_listing_elements(page, min_count=1, timeout=5000)[:total]
+            # NOTE: We do NOT slice to [:total] here because we need MORE listings
+            # to account for duplicates. Dedup happens on-the-fly below.
+            all_listings = find_listing_elements(page, min_count=1, timeout=5000)
             listings = [listing.locator("xpath=..") for listing in all_listings]
             logging.info(f"Total Found: {len(listings)}")
             
@@ -1029,11 +1031,41 @@ def scrape_places(
             
             # Cache for website scrape results — avoids re-visiting same URL on retry
             website_cache: Dict[str, Dict[str, str]] = {}
+            
+            # ─── On-the-fly deduplication loop ───
+            # Scrape until we have 'total' UNIQUE results.
+            # If we exhaust available listings, scroll for more.
+            # Duplicates are skipped silently.
+            seen_names: Set[str] = set()
+            idx = 0
+            max_scroll_attempts = 3
+            scroll_attempts = 0
 
-            for idx, listing in enumerate(listings):
+            while len(places) < total:
                 if abort_event and abort_event.is_set():
                     logging.info("Scrape cancelled by user")
                     break
+
+                # If we've exhausted all current listings, try to scroll for more
+                if idx >= len(listings):
+                    if scroll_attempts >= max_scroll_attempts:
+                        logging.info(f"No more results after {max_scroll_attempts} scroll attempts — got {len(places)} unique")
+                        break
+
+                    # Scroll the results feed to load more listings
+                    page.evaluate('''const feed = document.querySelector("[role='feed']");
+                    if (feed) { feed.scrollBy(0, 12000); } else { window.scrollBy(0, 12000); }''')
+                    page.wait_for_timeout(350)
+
+                    new_raw = find_listing_elements(page, min_count=1, timeout=5000)
+                    if len(new_raw) > len(listings):
+                        new_wrapped = [l.locator("xpath=..") for l in new_raw[len(listings):]]
+                        listings.extend(new_wrapped)
+                        logging.info(f"🔄 Scrolled for more: {len(listings)} total listings (need {total - len(places)} more unique)")
+                    else:
+                        logging.info(f"No new listings found after scroll (attempt {scroll_attempts + 1}/{max_scroll_attempts})")
+                    scroll_attempts += 1
+                    continue  # Don't increment idx — try the new listings
 
                 # Use retry logic with data verification for every mode
                 place = scrape_place_with_retry(
@@ -1048,11 +1080,21 @@ def scrape_places(
                 )
 
                 if place and place.name:
+                    # Deduplicate on-the-fly: skip if we already have this business
+                    name_key = place.name.strip().lower()
+                    if name_key in seen_names:
+                        logging.info(f"⏭ Skipping duplicate: {place.name}")
+                        idx += 1
+                        continue
+                    seen_names.add(name_key)
                     places.append(place)
                     if progress_callback:
-                        progress_callback(len(places))
+                        progress_callback(len(places))  # Reports ONLY unique count
+                    logging.info(f"✅ [{len(places)}/{total}] {place.name}")
                 else:
                     logging.warning(f"Skipping listing {idx+1}: could not extract valid data after retries.")
+
+                idx += 1
         finally:
             browser.close()
     return places
